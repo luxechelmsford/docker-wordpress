@@ -1,0 +1,76 @@
+# This file defines all the environment values needed by docket-compsoe-template-yml
+# This is used by site shell file whch passed the required environment variables to set these values for docker-composet-template.yml
+
+
+# The site shell file (./config/site) set the following variables before including this file and generating the site speific YAML file
+# WEBSITE_NAME
+# DB_NAME
+# WEB_HTTP_PORT
+# WEB_HTTPS_PORT
+# WEB_MAIN_SERVER_URL
+# WEB_ALL_SERVER_URLS
+
+# Local variables
+DB_PORT=3306
+DB_PWD_KEY="db-pwd-${WEBSITE_NAME}"
+DB_PWD_FILE="mysqldb-pwd.txt"
+WEBDRIVE_URL_KEY="webdev-url-${WEBSITE_NAME}"
+WEBDRIVE_URL_FILE="webdrive-url.txt"
+WEBDRIVE_UID_KEY="webdev-uid-${WEBSITE_NAME}"
+WEBDRIVE_UID_FILE="webdrive-uid.txt"
+WEBDRIVE_PWD_KEY="webdev-pwd-${WEBSITE_NAME}"
+WEBDRIVE_PWD_FILE="webdrive-pwd.txt"
+
+# MY SQL
+MYSQL_SERVICE_NAME=mysql
+MYSQL_CONTAINER_NAME=${WEBSITE_NAME}-mysql
+MYSQL_PORT=${DB_PORT}
+MYSQL_DATABASE=${DB_NAME}
+MYSQL_USER=${DB_NAME}
+DEST_MYSQL_PASSWORD_FILE=/run/secrets/${DB_PWD_KEY}
+
+# Wordpress
+WORDPRESS_SERVICE_NAME=wordpress
+WORDPRESS_CONTAINER_NAME=${WEBSITE_NAME}-wordpress
+WORDPRESS_ROOT_DIR=/var/www/html
+WORDPRESS_TABLE_PREFIX=wp_
+
+# Php My Admin
+PHPMYADMIN_SERVICE_NAME=phpmyadmin
+PHPMYADMIN_CONTAINER_NAME=${WEBSITE_NAME}-phpmyadmin
+PHPMYADMIN_ROOT_DIR=/var/www/phpmyadmin
+
+# Nginx - Env variable
+NGINX_SERVICE_NAME=nginx
+NGINX_CONTAINER_NAME=${WEBSITE_NAME}-nginx
+WORDPRESS_ALL_SERVER_URLS="${WEB_ALL_SERVER_URLS}"
+PHPMYADMIN_ALL_SERVER_URLS="phpmyadmin.${WEB_MAIN_SERVER_URL}"      
+#Nginx - Ports
+NGINX_EXT_HTTP_PORT=${WEB_HTTP_PORT}
+NGINX_EXT_HTTPS_PORT=${WEB_HTTPS_PORT}
+
+# WP Backup
+WPBACKUP_SERVICE_NAME=wpbackup
+WPBACKUP_CONTAINER_NAME=${WEBSITE_NAME}-wpbackup
+WPBACKUP_WEBSITE_NAME=${WEBSITE_NAME}
+WPBACKUP_ROOT_DIR=/var/backups/${WEBSITE_NAME}    
+WPBACKUP_HOUR=0
+
+# Web Drive
+WEBDRIVE_SERVICE_NAME=webdrive
+WEBDRIVE_CONTAINER_NAME=${WEBSITE_NAME}-webdrive
+WEBDRIVE_ROOT_DIR=/mnt/webdrive/${WEBSITE_NAME}
+WEBDRIVE_REMOTE_PATH=${WEBSITE_NAME}
+DEST_WEBDRIVE_UID_FILE=/run/secrets/${WEBDRIVE_UID_KEY}
+DEST_WEBDRIVE_PWD_FILE=/run/secrets/${WEBDRIVE_PWD_KEY}
+DEST_WEBDRIVE_URL_FILE=/run/secrets/${WEBDRIVE_URL_KEY}
+
+# Secrets
+MYSQL_PASSWORD_KEY=${DB_PWD_KEY}
+WEBDRIVE_URL_KEY=${WEBDRIVE_URL_KEY}
+WEBDRIVE_UID_KEY=${WEBDRIVE_UID_KEY}
+WEBDRIVE_PWD_KEY=${WEBDRIVE_PWD_KEY}
+SRC_MYSQL_PASSWORD_FILE=./.docker/mysql/secret/${DB_PWD_FILE}
+SRC_WEBDRIVE_URL_FILE=./.docker/webdrive/secret/${WEBDRIVE_URL_FILE}
+SRC_WEBDRIVE_UID_FILE=./.docker/webdrive/secret/${WEBDRIVE_UID_FILE}
+SRC_WEBDRIVE_PWD_FILE=./.docker/webdrive/secret/${WEBDRIVE_PWD_FILE}

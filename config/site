@@ -1,0 +1,476 @@
+#!/bin/bash
+
+
+help() {
+  cat << EOF
+Managing website(s) interface
+  Usage: site [options]
+    [-a|add] ....................   Add the configuration of a new website 
+      <-n|--name=websiteName>         The secific website whose configration is to be added.
+      <-p|--http-port=port>           Numeric port value for http connection
+      <-x|--https-port=port]>         Numeric port value for ssl/https/X.509
+      <-w|--web=serverUrl>            The main web server domain url
+      [-u|--url=serverUrl]            Additional server url
+    [-e|--edit] .................   Edit the configuration of an existing website
+      <-n|--name=websiteName>         The secific website whose configration is to be added.
+      [-p|--http-port=port]           Numeric port value for http connection
+      [-x|--https-port=port]          Numeric port value for ssl/https/X.509
+      [-w|--web=serverUrl]            The main web server domain url
+      [-u|--url=serverUrl]            Additional server url
+    [-v|--view] .................   View all site details ot the specified one's
+      [-n|--name=websiteName]         The name of the site to be viewed. -s= will list all sites
+    [-d|--del] ..................   Delete the specified site detials
+      <-n|--name=websiteName>         The name of the site to be deleted
+    [-r|--rebuild] ..............   Rebuild all site yamls - should be used when template files are changed
+      [-n|--name=websiteName]         The name of the site whose yaml to be rebuilt. -s= will rebuilt yaml for all sites
+    [-h|--help] .................   Display this help menu
+
+
+EOF
+  exit 1
+}
+
+
+apply_shell_expansion() {
+    declare file="$1"
+    declare data=$(< "$file")
+    declare delimiter="__apply_shell_expansion_delimiter__"
+    declare command="cat <<$delimiter"$'\n'"$data"$'\n'"$delimiter"
+    eval "$command"
+}
+
+
+createYml() {
+  export WEBSITE_NAME="$1"
+  export DB_NAME=${WEBSITE_NAME//-/_}
+  export WEBDEV_URL=https://bluebells.myqnapcloud.com:5001/WebsiteBackup/
+  export WEBDEV_USERNAME=webdavbackup
+  export MYSQL_PORT=3306
+  export WEB_HTTP_PORT=$2
+  export WEB_HTTPS_PORT=$3 
+  export WEB_MAIN_SERVER_URL=$4
+  if [ -z "${5}" ]; then
+    export WEB_ALL_SERVER_URLS=$4
+  else
+    export WEB_ALL_SERVER_URLS="$4 $5"
+  fi
+
+  if [ -z "${WEBSITE_NAME}" ]; then
+    echo "A website name must be specifcy using <-n|--name=websiteName>"
+    echo "Use [-h|--help] for detailed argument list"
+    echo ""
+    exit 1;
+  fi
+  if [ -z "${WEB_HTTP_PORT}" ]; then
+    echo "A HTTP port must be specifcy using <-p|--http=port>"
+    echo "Use [-h|--help] for detailed argument list"
+    echo ""
+    exit 1;
+  fi
+  if [ -z "${WEB_HTTPS_PORT}" ]; then
+    echo "A HTTPS port must be specifcy using <-x|--https=port>"
+    echo "Use [-h|--help] for detailed argument list"
+    echo ""
+    exit 1;
+  fi
+  if [ -z "${WEB_MAIN_SERVER_URL}" ]; then
+    echo "The main server URLs must be specifcy using <--w|--web=serverUrl>"
+    echo "Use [-h|--help] for detailed argument list"
+    echo ""
+    exit 1;
+  fi
+  
+  . ${SCRIPT_PATH}/env-template
+  printf "%s\n" "$(apply_shell_expansion ${SCRIPT_PATH}/docker-compose-template.yml)" > ${ROOT_DIR}/docker-compose-${WEBSITE_NAME}.yml
+}
+
+
+deleteYml() {
+  rm -rf ${ROOT_DIR}/docker-compose-${WEBSITE_NAME}.yml
+}
+
+
+
+rebuildYml() { 
+  rm -rf ${ROOT_DIR}/docker-compose-*.yml
+  
+  SEARCH_STRING="^.*\S.*"
+  
+  if [ ! -z "${WEBSITE_NAME}" ]; then
+    LINE=$(grep "^${WEBSITE_NAME}|" "${SCRIPT_FILE}.txt")
+    if [ -z "${LINE}" ]; then
+      echo "The site [${WEBSITE_NAME}] does not exist"
+      echo ""
+      exit 1;
+    fi
+    SEARCH_STRING="^${WEBSITE_NAME}|"
+  fi
+  
+  grep "${SEARCH_STRING}" "${SCRIPT_FILE}.txt" | while read -r LINE ; do
+    # Split the values int an array
+    IFS='|' read -r -a ARRAY <<< "$LINE"
+    if [ "${ARRAY[4]}" == "<BLANK>" ]; then ARRAY[4]=""; fi
+    if [ 5 != "${#ARRAY[@]}" ]; then
+      echo "Invalid site entry [${VALUES}] - please delete and then add the site again"
+      echo ""
+      exit 1;
+    fi
+    MSG="  Building ${ARRAY[0]}: ${ARRAY[1]}, ${ARRAY[2]}, ${ARRAY[3]}"
+    if [ ! -z "${ARRAY[4]}" ]; then MSG="${MSG}, ${ARRAY[4]}"; fi
+    echo $MSG
+    createYml "${ARRAY[0]}" "${ARRAY[1]}" "${ARRAY[2]}" "${ARRAY[3]}" "${ARRAY[4]}"
+  done
+  Echo "All sites built successfully ..."
+  echo ""
+}
+
+
+
+addSite() {
+
+  echo "Adding site [${WEBSITE_NAME}]"
+  
+  # check if the site is already added
+  if grep -q "^${WEBSITE_NAME}|" "${SCRIPT_FILE}.txt"; then
+    echo " The site [${WEBSITE_NAME}] already exist"
+    echo ""
+    exit 1;
+  fi
+
+  echo "${WEBSITE_NAME}|${WEB_HTTP_PORT}|${WEB_HTTPS_PORT}|${WEB_SERVER_URL}|${ADDITIONAL_SERVER_URL:-"<BLANK>"}" >> "${SCRIPT_FILE}.txt"
+  
+  createYml "${WEBSITE_NAME}" "${WEB_HTTP_PORT}" "${WEB_HTTPS_PORT}" "${WEB_SERVER_URL}" "${ADDITIONAL_SERVER_URL}"
+
+  echo "Site [${WEBSITE_NAME}] with Values:"
+  echo "    HTTP Port:             ${WEB_HTTP_PORT}"
+  echo "    HTTPS Port:            ${WEB_HTTPS_PORT}"
+  echo "    Main Server URL:       ${WEB_SERVER_URL}"
+  echo "    Additional Server URL: ${ADDITIONAL_SERVER_URL}"
+  echo "  added successfully ..."
+  echo ""
+}
+
+
+editSite() {
+
+  if [ ! -z "${WEB_HTTP_PORT}" ]; then
+      MSG1="HTTP Port: ${WEB_HTTP_PORT}"
+  fi
+  if [ ! -z "${WEB_HTTPS_PORT}" ]; then
+    if [ ! -z "${MSG}" ]; then
+      MSG="$MSG & "
+    fi
+    MSG="HTTPS Port: ${WEB_HTTPS_PORT}"
+  fi
+  printf "Editing site [%s] with values: %s \n" "${WEBSITE_NAME}" "${MSG}"
+  if [ ! -z "${WEB_SERVER_URL}" ]; then
+    echo "    Domain URLS: ${WEB_SERVER_URL}"
+  fi
+
+  if [ -z "${WEBSITE_NAME}" ]; then
+    echo "A website name must be specifcy using <-n|--name=websiteName>"
+    echo "Use [-h|--help] for detailed argument list"
+    echo ""
+    exit 1;
+  fi
+  
+  if [ -z "${WEB_HTTP_PORT}" ] && [ -z "${WEB_HTTPS_PORT}" ] && [ -z "${WEB_SERVER_URL}" ] && [ -z "${ADDITIONAL_SERVER_URL}" ]; then
+    echo ""
+    echo "Atleast one of the followings must be specfied to edit a website configuration"
+    echo "  [-p|--http-port=port] ...... Numeric port value for http connection"
+    echo "  [-x|--https-port=port] ..... Numeric port value for ssl/https/X.509"
+    echo "  [-s|--server=serverUrl] .... The main domain server url
+    echo "  [-w|--web=serverUrl] ....... Additional domain server url
+    echo "Use [-h|--help] for detailed argument list"
+    echo ""
+    exit 1;
+  fi
+  
+  # If the site does not exist
+  LINE=$(grep -n "^${WEBSITE_NAME}|" "${SCRIPT_FILE}.txt")
+  if [ -z "${LINE}" ]; then
+    echo "The site [${WEBSITE_NAME}] does not exist"
+    exit 1;
+  fi
+
+  # Spit the LINE between line no and values
+  LINE_NO=${LINE%%:*}
+  VALUES=${LINE#*:}
+
+  # Split the values int an array
+  IFS='|' read -r -a ARRAY <<< "$VALUES"
+  if [ 5 != "${#ARRAY[@]}" ]; then
+    echo "Invalid site entry [${VALUES}] - please delete and then add the site again"
+    echo ""
+    exit 1;
+  fi
+    
+  # Set the values
+  if [ -z "$WEB_HTTP_PORT" ]; then  WEB_HTTP_PORT=${ARRAY[1]}; fi
+  if [ -z "$WEB_HTTPS_PORT" ]; then  WEB_HTTPS_PORT=${ARRAY[2]}; fi
+  if [ -z "$WEB_SERVER_URL" ]; then WEB_SERVER_URL=${ARRAY[3]}; fi
+  if [ -z "$ADDITIONAL_SERVER_URL" ] && ["${ARRAY[4]}" != "<BLANK>"]; then ADDITIONAL_SERVER_URL=${ARRAY[4]}; fi
+  
+  # ESCAPE the SED Char in the NEW Line and replace it
+  NEW_LINE="${WEBSITE_NAME}|${WEB_HTTP_PORT}|${WEB_HTTPS_PORT}|${WEB_SERVER_URL}|${ADDITIONAL_SERVER_URL:-<BLANK>}"
+echo newline $NEW_LINE
+  ESCAPED_NEW_LINE=$(printf '%s\n' "$NEW_LINE" | sed -e 's/[\/&]/\\&/g')
+  sed "${LINE_NO}s/.*/${ESCAPED_NEW_LINE}/" ${SCRIPT_FILE}.txt > ${SCRIPT_FILE}.txt.tmp && mv  ${SCRIPT_FILE}.txt.tmp ${SCRIPT_FILE}.txt 
+
+  createYml "${WEBSITE_NAME}" "${WEB_HTTP_PORT}" "${WEB_HTTPS_PORT}" "${WEB_SERVER_URL}" "${ADDITIONAL_SERVER_URL}"
+
+  echo "Site [${WEBSITE_NAME}] edited with values:"
+  echo "    HTTP Port:             ${WEB_HTTP_PORT}"
+  echo "    HTTPS Port:            ${WEB_HTTPS_PORT}"
+  echo "    Main Server URL:       ${WEB_SERVER_URL}"
+  echo "    Additional Server URL: ${ADDITIONAL_SERVER_URL}"
+  echo "  edited successfully ..."
+  echo ""
+}
+
+
+viewSite() {
+  
+  SEARCH_STRING="^"
+  
+  if [ ! -z "${WEBSITE_NAME}" ]; then
+    LINE=$(grep "^${WEBSITE_NAME}|" "${SCRIPT_FILE}.txt")
+    if [ -z "${LINE}" ]; then
+      echo "The site [${WEBSITE_NAME}] does not exist"
+      echo ""
+      exit 1;
+    fi
+    SEARCH_STRING="^${WEBSITE_NAME}|"
+  fi
+  
+  COL_HEAD1="SITE NAME     "
+  COL_HEAD2="HTTP PORT "
+  COL_HEAD3="HTTPS PORT "
+  COL_HEAD4="MAIN SERVER URLS            "
+  COL_HEAD5="ADDITIONAL SERVER URLS "
+  echo " ${COL_HEAD1}| ${COL_HEAD2}| ${COL_HEAD3}| ${COL_HEAD4}| ${COL_HEAD5}"
+  echo "------------------------------------------------------------------------------------------------------"
+  grep "${SEARCH_STRING}" "${SCRIPT_FILE}.txt" | while read -r LINE ; do
+    IFS='|' read -r -a ARRAY <<< "$LINE"
+      if [ "${ARRAY[4]}" == "<BLANK>" ]; then ARRAY[4]=""; fi
+      printf " %-${#COL_HEAD1}s| %-${#COL_HEAD2}s| %-${#COL_HEAD3}s| %-${#COL_HEAD4}s| %s\n" "${ARRAY[0]}" "${ARRAY[1]}" "${ARRAY[2]}" "${ARRAY[3]}" "${ARRAY[4]}"
+  done  
+  echo "------------------------------------------------------------------------------------------------------"
+  echo ""
+}
+
+
+
+delSite() {
+
+  echo "Deleting site [${WEBSITE_NAME}] ..."
+
+  if [ -z "${WEBSITE_NAME}" ]; then
+    echo "A website name must be specifcy using <-n|--name=websiteName>"
+    echo "Use [-h|--help] for detailed argument list"
+    echo ""
+    exit 1;
+  fi
+  
+  # If the site does not exist
+  LINE=$(grep -n "^${WEBSITE_NAME}|" "${SCRIPT_FILE}.txt")
+  if [ -z "${LINE}" ]; then
+    echo "Failed to delete the site [${WEBSITE_NAME}] - It does not exist"
+    echo ""
+    exit 1;
+  fi
+
+  # Spit the LINE between line no and values
+  LINE_NO=${LINE%%:*}
+  VALUES=${LINE#*:}
+  
+  # Split the values int an array
+  IFS='|' read -r -a ARRAY <<< "$VALUES"
+  
+  # delete the line in the file
+  sed "${LINE_NO}d" ${SCRIPT_FILE}.txt > ${SCRIPT_FILE}.txt.tmp && mv ${SCRIPT_FILE}.txt.tmp ${SCRIPT_FILE}.txt 
+  deleteYml;
+
+  if [ "${ARRAY[4]}" == "<BLANK>" ]; then ARRAY[4]=""; fi
+  echo "Site [${WEBSITE_NAME}] with values:"
+  echo "    HTTP Port:             ${ARRAY[1]}"
+  echo "    HTTPS Port:            ${ARRAY[2]}"
+  echo "    Main Server URL:       ${ARRAY[3]}"
+  echo "    Additional Server URL: ${ARRAY[4]}"
+  echo "  deleted successfully ..."
+  echo ""
+}
+
+##################################
+# Main Processing block          #
+##################################
+
+# to do correct this to also work with linux
+SCRIPT_PATH=$(cd "$(dirname "$0")"; pwd)
+ROOT_DIR=${SCRIPT_PATH%/*}
+SCRIPT_FILE="${SCRIPT_PATH}/site"
+
+# Iterate through all arguments and find the command to be executed
+options=()
+for arg in "$@"; do 
+  case $arg in
+    -a|--add)
+      COMMAND=addSite
+      ;;
+    -e|--edit)
+      COMMAND=editSite
+      ;;
+    -v|--view)
+      COMMAND=viewSite
+      ;;
+    -d|--del)
+      COMMAND=delSite
+      ;;
+    -r|--rebuild)
+      COMMAND=rebuildYml
+      ;;
+    -h|--help)
+      COMMAND=help
+      ;;
+    *)
+      # save as a potetial options to be iterated later
+      options+=($arg)
+  esac
+done
+
+if [ -z ${COMMAND} ]; then
+  echo ""
+  echo "One of the following options must be specified to manage site(s)."
+  echo " [-a|--add] ..................   Add the configuration of a new website"
+  echo " [-e|--edit] .................   Edit the configuration of an existing website"
+  echo " [-v|--view] .................   View all site details ot the specified one's"
+  echo " [-d|--del] ..................   Delete the specified site detials"
+  echo " [-r|--rebuild] ..............   Rebuild all site yamls - should be used when template files are changed"
+  echo " [-h|--help] .................   Display this help menu"
+  echo ""
+  echo ""
+  exit 1;
+fi
+
+OPTION_N_COMMANDS=("addSite" "editSite" "viewSite"  "delSite" "rebuildYml")
+OPTION_P_COMMANDS=("addSite" "editSite")
+OPTION_X_COMMANDS=("addSite" "editSite")
+OPTION_W_COMMANDS=("addSite" "editSite")
+OPTION_U_COMMANDS=("addSite" "editSite")
+
+# set the environment variables from the argument
+# iterate all but the last
+
+WEB_SERVER_URL=""
+for option in ${options[@]}; do
+  case $option in
+    -n=*|--name=*)
+      if [[ " ${OPTION_N_COMMANDS[@]} " =~ " ${COMMAND} " ]]; then
+        WEBSITE_NAME="${option#*=}"
+        shift # past option=value
+      else
+        UNKNOWN_OPTION="${option}"
+      fi
+      ;;
+    -p=*|--http-port=*)
+      if [[ " ${OPTION_P_COMMANDS[@]} " =~ " ${COMMAND} " ]]; then
+        WEB_HTTP_PORT="${option#*=}"
+        shift # past option=value
+      else
+        UNKNOWN_OPTION="${option}"
+      fi
+      ;;
+    -x=*|--https-port=*)
+      if [[ " ${OPTION_X_COMMANDS[@]} " =~ " ${COMMAND} " ]]; then
+        WEB_HTTPS_PORT="${option#*=}"
+        shift # past option=value
+      else
+        UNKNOWN_OPTION="${option}"
+      fi
+      ;;
+    -w=*|--web=*)
+      if [[ " ${OPTION_W_COMMANDS[@]} " =~ " ${COMMAND} " ]]; then
+        WEB_SERVER_URL="${option#*=}"
+        shift # past option=value
+      else
+        UNKNOWN_OPTION="${option}"
+      fi
+      ;;
+    -u=*|--url=*)
+      if [[ " ${OPTION_U_COMMANDS[@]} " =~ " ${COMMAND} " ]]; then
+        ADDITIONAL_SERVER_URL="${option#*=}"
+        shift # past option=value
+      else
+        UNKNOWN_OPTION="${option}"
+      fi
+      ;;
+    *)
+      # Unknown option
+      UNKNOWN_OPTION="${option}"
+      ;;
+  esac
+  
+  if [ ! -z "${UNKNOWN_OPTION}" ]; then
+    echo "Unknown option [${UNKNOWN_OPTION}] found for ${COMMAND} command"
+    echo "Use [-h|--help] for detailed argument list"
+    echo ""
+    echo ""
+    exit 1;
+  fi
+done
+
+# Now handle any options not set for a specific command
+OPTION_N_MANDATORY_COMMANDS=("addSite" "editSite" "delSite")
+OPTION_P_MANDATORY_COMMANDS=("addSite")
+OPTION_X_MANDATORY_COMMANDS=("addSite")
+OPTION_W_MANDATORY_COMMANDS=("addSite")
+OPTION_U_MANDATORY_COMMANDS=("")
+
+# Check the Site Name is set for all commnads that specifies it as a mandatory option
+if [[ " ${OPTION_N_MANDATORY_COMMANDS[@]} " =~ " ${COMMAND} " ]] && [ -z "${WEBSITE_NAME}" ]; then
+  echo "A website name must be specified using <-n|--name=siteName> for [${COMMAND}] command"
+  echo "Use [-h|--help] for detailed argument list"
+  echo ""
+  echo ""
+  exit 1;
+fi
+
+# Check the HTTP port is set for all commnads that specifies it as a mandatory option
+if [[ " ${OPTION_P_MANDATORY_COMMANDS[@]} " =~ " ${COMMAND} " ]] && [ -z "${WEB_HTTP_PORT}" ]; then
+  echo "A HTTP port must be specified using <-p|--http-port=portNo> for [${COMMAND}] command"
+  echo "Use [-h|--help] for detailed argument list"
+  echo ""
+  echo ""
+  exit 1;
+fi
+
+# Check the HTTPS port is set for all commnads that specifies it as a mandatory option
+if [[ " ${OPTION_X_MANDATORY_COMMANDS[@]} " =~ " ${COMMAND} " ]] && [ -z "${WEB_HTTPS_PORT}" ]; then
+  echo "A HTTPS port must be specified using <-x|--https-port=portNo> for [${COMMAND}] command"
+  echo "Use [-h|--help] for detailed argument list"
+  echo ""
+  echo ""
+  exit 1;
+fi
+
+# Check the Web Server URL is set for all commnads that specifies it as a mandatory option
+if [[ " ${OPTION_W_MANDATORY_COMMANDS[@]} " =~ " ${COMMAND} " ]] && [ -z "${WEB_SERVER_URL}" ]; then
+  echo "A Web Server URL must be specified using <-w|--web=serverUrl> for [${COMMAND}] command"
+  echo "Use [-h|--help] for detailed argument list"
+  echo ""
+  echo ""
+  exit 1;
+fi
+
+# Check the Additional Server URL is set for all commnads that specifies it as a mandatory option
+if [[ " ${OPTION_U_MANDATORY_COMMANDS[@]} " =~ " ${COMMAND} " ]] && [ -z "${ADDITIONAL_SERVER_URL}" ]; then
+  echo "An Additional Server URL must be specified using <-u|--url=serverUrl> for [${COMMAND}] command"
+  echo "Use [-h|--help] for detailed argument list"
+  echo ""
+  echo ""
+  exit 1;
+fi
+
+# Run the command
+${COMMAND};
+echo ""
