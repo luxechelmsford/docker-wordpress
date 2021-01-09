@@ -1,3 +1,0 @@
-luxe-live|21200|21300|theluxestudio.co.uk|www.theluxestudio.co.uk
-luxe-test|21201|21301|test.theluxestudio.co.uk|<BLANK>
-luxe-demo|21202|22202|demo.thelxestudio.co.uk|<BLANK>
