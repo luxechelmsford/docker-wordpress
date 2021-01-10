@@ -1,0 +1,4 @@
+*.yml
+yarn.lock
+!.gitignore
+!docker-compose-demo.yml
