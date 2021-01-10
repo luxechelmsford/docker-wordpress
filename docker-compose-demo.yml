@@ -65,7 +65,7 @@ services:
     restart:                         always
     working_dir:                     /etc/nginx
     environment:
-      WORDPRESS_ALL_SERVER_URLS:     example.com www.exampple.com
+      WORDPRESS_ALL_SERVER_URLS:     example.com
       PHPMYADMIN_ALL_SERVER_URLS:    phpmyadmin.example.com
       LETSENCRYPT_ADMIN_EMAIL_FILE:  /run/secrets/admin-email-demo
     volumes:
@@ -79,7 +79,7 @@ services:
       - admin-email-demo
     ports:
       - 8080:80
-      - 8443:443
+      - www.example.com:443
 
   # Backup service
   wpbackup:
@@ -113,16 +113,18 @@ services:
     working_dir:                     /mnt/webdrive/demo
     environment:
       WEBDRIVE_REMOTE_PATH:          demo
-      WEBDRIVE_URL_FILE:             /run/secrets/webdev-url-demo
-      WEBDRIVE_UID_FILE:             /run/secrets/webdev-uid-demo
-      WEBDRIVE_PWD_FILE:             /run/secrets/webdev-pwd-demo
+      WEBDRIVE_CER_FILE:             /run/secrets/webdav-cer-demo
+      WEBDRIVE_URL_FILE:             /run/secrets/webdav-url-demo
+      WEBDRIVE_UID_FILE:             /run/secrets/webdav-uid-demo
+      WEBDRIVE_PWD_FILE:             /run/secrets/webdav-pwd-demo
     volumes:
       - wpbackup-volume:/var/backups/demo:cached
       - webdrive-volume:/mnt/webdrive/demo:delegated
     secrets:
-      - webdev-url-demo
-      - webdev-uid-demo
-      - webdev-pwd-demo
+      - webdav-cer-demo
+      - webdav-url-demo
+      - webdav-uid-demo
+      - webdav-pwd-demo
     devices:
       - /dev/fuse
     cap_add:
@@ -135,12 +137,14 @@ secrets:
     file: ./.docker/mysql/secret/mysqldb-pwd.txt
   admin-email-demo:
     file: ./.docker/nginx/secret/admin-email.txt
-  webdev-url-demo:
-    file: ./.docker/webdrive/secret/webdrive-url.txt
-  webdev-uid-demo:
-    file: ./.docker/webdrive/secret/webdrive-uid.txt
-  webdev-pwd-demo:
-    file: ./.docker/webdrive/secret/webdrive-pwd.txt
+  webdav-cer-demo:
+    file: ./.docker/webdrive/secret/webdrive-cer-demo.cer
+  webdav-url-demo:
+    file: ./.docker/webdrive/secret/webdrive-url-demo.txt
+  webdav-uid-demo:
+    file: ./.docker/webdrive/secret/webdrive-uid-demo.txt
+  webdav-pwd-demo:
+    file: ./.docker/webdrive/secret/webdrive-pwd-demo.txt
 
 # Volumes
 volumes:

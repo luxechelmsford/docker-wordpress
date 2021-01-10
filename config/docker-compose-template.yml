@@ -113,6 +113,7 @@ services:
     working_dir:                     ${WEBDRIVE_ROOT_DIR}
     environment:
       WEBDRIVE_REMOTE_PATH:          ${WEBDRIVE_REMOTE_PATH}
+      WEBDRIVE_CER_FILE:             /run/secrets/${WEBDRIVE_CER_KEY}
       WEBDRIVE_URL_FILE:             /run/secrets/${WEBDRIVE_URL_KEY}
       WEBDRIVE_UID_FILE:             /run/secrets/${WEBDRIVE_UID_KEY}
       WEBDRIVE_PWD_FILE:             /run/secrets/${WEBDRIVE_PWD_KEY}
@@ -120,6 +121,7 @@ services:
       - wpbackup-volume:${WPBACKUP_ROOT_DIR}:cached
       - webdrive-volume:${WEBDRIVE_ROOT_DIR}:delegated
     secrets:
+      - ${WEBDRIVE_CER_KEY}
       - ${WEBDRIVE_URL_KEY}
       - ${WEBDRIVE_UID_KEY}
       - ${WEBDRIVE_PWD_KEY}
@@ -135,6 +137,8 @@ secrets:
     file: ${SRC_MYSQL_PASSWORD_FILE}
   ${ADMIN_EMAIL_KEY}:
     file: ${SRC_LETSENCRYPT_EMAIL_FILE}
+  ${WEBDRIVE_CER_KEY}:
+    file: ${SRC_WEBDRIVE_CER_FILE}
   ${WEBDRIVE_URL_KEY}:
     file: ${SRC_WEBDRIVE_URL_FILE}
   ${WEBDRIVE_UID_KEY}:

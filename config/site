@@ -92,7 +92,7 @@ deleteYml() {
 
 
 rebuildYml() { 
-  rm -rf ${ROOT_DIR}/docker-compose-*.yml
+  #rm -rf ${ROOT_DIR}/docker-compose-*.yml
   
   SEARCH_STRING="^.*\S.*"
   

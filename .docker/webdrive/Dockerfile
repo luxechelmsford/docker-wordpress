@@ -11,7 +11,6 @@ RUN apt-get update \
 
 COPY ./default.prf.template /root/.unison/default.prf.template
 COPY docker-entrypoint.sh /bin/entrypoint.sh
-COPY ./certs/webdavsever.cer /etc/davfs2/certs/
 
 ENTRYPOINT [ "entrypoint.sh" ]
 
