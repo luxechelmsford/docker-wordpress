@@ -7,14 +7,6 @@ RUN apt-get update && \
     mkdir -p /var/backups/logs && \
     mkdir -p /var/backups/local
 
-ENV WPBACKUP_TIME 0
-ENV WPBACKUP_MYSQL_HOST mysql
-ENV WPBACKUP_MYSQL_PORT 3306
-ENV WPBACKUP_MYSQL_DATABASE demo
-ENV WPBACKUP_MYSQL_USERNAME demo
-ENV WPBACKUP_MYSQL_PASSWORD_FILE /run/secrets/demo
-ENV WPBACKUP_WEBSITE_NAME demo
-
 COPY docker-entrypoint.sh /bin/entrypoint.sh
 COPY backup.sh restore.sh /bin/
 

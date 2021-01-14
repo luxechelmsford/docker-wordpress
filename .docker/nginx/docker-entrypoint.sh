@@ -1,63 +1,101 @@
 #!/bin/bash
 set -eu
 
-echo Nginx service is staring ...
-
-# Checking all variables
-if [ -z "${WORDPRESS_ALL_SERVER_URLS}" ]; then  echo "WORDPRESS_ALL_SERVER_URLS is not set"; fi
-if [ -z "${PHPMYADMIN_ALL_SERVER_URLS}" ]; then  echo "PHPMYADMIN_ALL_SERVER_URLS is not set"; fi
-if [ -z "${LETSENCRYPT_ADMIN_EMAIL_FILE}" ]; then  echo "LETSENCRYPT_ADMIN_EMAIL_FILE is not set"; fi
 
 
+#########################################################################################
+#                                                                                       #
+# Get the list of the domians that do not have a letsencrypt certificates installed     #
+#                                                                                       #
+# Parameters                                                                            #
+#   The variable to hold the list of domain for certificates to be installed            #
+#   If nothing passed, the value is returned via an echo                                #
+#                                                                                       # 
+# Retun Values:                                                                         #
+#   If all domains have certificate installed then a black strung is returned           #
+#   Else all domians are returned                                                       #
+#                                                                                       #
+#########################################################################################
 
-# Check and create Nginx Conf, if not created in the previous run
-if [ -n "${WORDPRESS_ALL_SERVER_URLS}" ] && [ -f "/etc/nginx/conf.d/wordpress.conf.template" ]
-then
-  # Do not change the single quotes around ${WORDPRESS_ALL_SERVER_URLS} below to double quotes
-  # Otherwise the environment variables will not be expanded
-  envsubst '${WORDPRESS_ALL_SERVER_URLS}' < /etc/nginx/conf.d/wordpress.conf.template > /etc/nginx/conf.d/wordpress.conf
+getDomainList(){
 
-  if [ -f "/etc/nginx/conf.d/wordpress.conf" ]
-  then
-    echo "The conf file [wordpress.conf] created successfully ..."
-    echo "Now deleting the template file [wordpress.conf.template] ..."
-    rm -f /etc/nginx/conf.d/wordpress.conf.template
-    if [ ! -f "/etc/nginx/conf.d/wordpress.conf.template" ]
+  #local __resultvar=$1
+
+  # Get the scertificate status and grep the line like this
+  #    Domains: example.com www.example.com phpmyadmin.example.com
+  local DOMAINS_WITH_CERTIFICATE
+  DOMAINS_WITH_CERTIFICATE="$(certbot certificates 2>/dev/null | grep -i "domains:")"
+
+  # Remove "Domains:" in the front and add the space at the end and front
+  # So that each domains has spaces both at ends
+  local DOMAINS_WITH_CERTIFICATE=" ${DOMAINS_WITH_CERTIFICATE#*:} "
+
+  # Reset the variable that will contain list of domains not having a certificate
+  local NEW_DOMAINS_FOUND=""
+  local DOMAIN_LIST=""
+
+  # combine all domains in a array list and iterate 
+  IFS=', ' read -r -a array <<< "${WORDPRESS_ALL_SERVER_URLS} ${PHPMYADMIN_ALL_SERVER_URLS}"
+  for element in "${array[@]}"
+  do
+    if [[ "${DOMAINS_WITH_CERTIFICATE}" != *"${element}"* ]]; then NEW_DOMAINS_FOUND="yes"; fi
+    if [ -n "${DOMAIN_LIST}" ]; then DOMAIN_LIST="${DOMAIN_LIST}, "; fi
+    DOMAIN_LIST="${DOMAIN_LIST}${element}";
+  done
+
+  #if [[ "$__resultvar" ]]; then
+  #  eval $__resultvar="'${DOMAIN_LIST}'"
+  #else
+    if [ -n "${NEW_DOMAINS_FOUND}" ]
     then
-      echo "The template files [wordpress.conf.template] deleted successfully ..."
+      echo "${DOMAIN_LIST}"
     else
-      echo "Failed to delete template files [wordpress.conf.template] ..."
+      echo ""
     fi
+  #fi
+}
+
+#########################################################################################
+
+
+
+
+echo ""
+echo "[$(date +"%Y-%m-%d-%H%M%S")] Entered nginx entrypoint script ..."
+
+
+# Copy wordpress.conf
+if [ -z "${WORDPRESS_CONF_FILE}" ]
+then
+  echo "WORDPRESS_CONF_FILE must be defined"
+elif [ ! -f "/etc/nginx/conf.d/${WORDPRESS_CONF_FILE##*/}" ]
+then
+  echo "Copying the wordpress conf file [wordpress.conf] ..."
+  cp "${WORDPRESS_CONF_FILE}" "/etc/nginx/conf.d/"
+  if [ -f "/etc/nginx/conf.d/${WORDPRESS_CONF_FILE##*/}" ]
+  then
+    echo "The wordpress conf files [wordpress.conf] copied successfully"
   else
-    echo "Failed to create wordpress.conf."
+    echo "Failed to copy wordpress conf files [wordpress.conf] to the conf.d folder"
   fi
 fi
 
 
-
-# Check and create Nginx Conf, if not created in the previous run
-if [ -n "${PHPMYADMIN_ALL_SERVER_URLS}" ] && [ -f "/etc/nginx/conf.d/phpmyadmin.conf.template" ]
+# Copy phpmyadmin.conf
+if [ -z "${PHPMYADMIN_CONF_FILE}" ]
 then
-  # Do not change the single quotes around ${PHPMYADMIN_ALL_SERVER_URLS} below to double quotes
-  # Otherwise the environment variables will not be expanded
-  envsubst '${PHPMYADMIN_ALL_SERVER_URLS}' < /etc/nginx/conf.d/phpmyadmin.conf.template > /etc/nginx/conf.d/phpmyadmin.conf
-
-  if [ -f "/etc/nginx/conf.d/phpmyadmin.conf" ]
+  echo "PHPMYADMIN_CONF_FILE must be defined"
+elif [ ! -f "/etc/nginx/conf.d/${PHPMYADMIN_CONF_FILE##*/}" ]
+then
+  echo "Copying the phpmyadmin conf file [phpmyadmin.conf] ..."
+  cp "${PHPMYADMIN_CONF_FILE}" "/etc/nginx/conf.d/"
+  if [ -f "/etc/nginx/conf.d/${PHPMYADMIN_CONF_FILE##*/}" ]
   then
-    echo "The conf file [phpmyadmin.conf] created successfully ..."
-    echo "Now deleting the template file [phpmyadmin.conf.template] ..."
-    rm -f /etc/nginx/conf.d/phpmyadmin.conf.template
-    if [ ! -f "/etc/nginx/conf.d/phpmyadmin.conf.template" ]
-    then
-      echo "The template files [phpmyadmin.conf.template] deleted successfully ..."
-    else
-      echo "Failed to delete template files [phpmyadmin.conf.template] ..."
-    fi
+    echo "The phpmyadmin conf files [phpmyadmin.conf] copied successfully"
   else
-    echo "Failed to create phpmyadmin.conf."
+    echo "Failed to copy phpmyadmin conf files [phpmyadmin.conf] to the conf.d folder"
   fi
 fi
-
 
 
 # Delete default.conf
@@ -65,66 +103,87 @@ if [ -f /etc/nginx/conf.d/default.conf ]
 then
   echo "Deleting the default conf files [default.conf] ..."
   rm -f /etc/nginx/conf.d/default.conf
-  echo "The default conf files [default.conf] deleted successfully ..."
+  if [ ! -f "/etc/nginx/conf.d/default.conf" ]
+  then
+    echo "The default conf files [default.conf] deleted successfully"
+  else
+    echo "Failed to delete default conf files [default.conf] from the conf.d folder"
+  fi
 fi
 
-
-
-# Check if certificate exists
-if [ -n "${WORDPRESS_ALL_SERVER_URLS}" ] && [ -n "${PHPMYADMIN_ALL_SERVER_URLS}" ]
+# Check if there are domians to be added
+DOMAIN_LIST=$(getDomainList)
+if [ -z "${DOMAIN_LIST}" ]
 then
-  if [ ! -f etc/letsencrypt/live/thetek.co.uk/fullchain.pem ] ||  [ ! -f /etc/letsencrypt/live/thetek.co.uk/privkey.pem ]
+  echo "SSL certificates already exist for wordpress and phpmyadmin"
+elif [ -z "${WORDPRESS_CONF_FILE}" ]  || [ ! -f "/etc/nginx/conf.d/${WORDPRESS_CONF_FILE##*/}" ]
+then
+  echo "Didn't attmept to install certificate as wordpress conf file is not found/created"
+elif [ -z "${PHPMYADMIN_CONF_FILE}" ] || [ ! -f "/etc/nginx/conf.d/${PHPMYADMIN_CONF_FILE##*/}" ]
+then
+  echo "Didn't attmept to install certificate as phpmyadmin conf file is not found/created"
+elif [ -f "/firstrun" ]
+then
+  echo "Already had a failed attempt. Won't run certboot any more. Please run certboot manually"
+  if [ -n "${LETSENCRYPT_TEST_MODE}" ] && [ "${LETSENCRYPT_TEST_MODE}" == "yes" ]; then TF="--test-cert"; else TF=""; fi
+  echo "    certbot --nginx --non-interactive --agree-tos --expand ${TF} --email ${LETSENCRYPT_ADMIN_EMAIL} -d ${DOMAIN_LIST}"
+else
+  touch "/firstrun"
+  echo "Installing SSL certificate for ${WORDPRESS_ALL_SERVER_URLS} ${PHPMYADMIN_ALL_SERVER_URLS} ... "
+  if [ -z "${LETSENCRYPT_ADMIN_EMAIL}" ]
   then
-    echo "Installing SSL certificate for ${WORDPRESS_ALL_SERVER_URLS} ${PHPMYADMIN_ALL_SERVER_URLS} ... "
-    if [ -z "${LETSENCRYPT_ADMIN_EMAIL_FILE}" ]
-    then
-      echo "Failed to install letsencrypt certificates - LETSENCRYPT_ADMIN_EMAIL_FILE environemnt variable not set";
-    else
-      ADMIN_EMAIL=$(<"${LETSENCRYPT_ADMIN_EMAIL_FILE}");
-      DOMAIN_LIST=""
-      IFS=', ' read -r -a array <<< "$WORDPRESS_ALL_SERVER_URLS"
-      for element in "${array[@]}"
-      do
-         DOMAIN_LIST="${DOMAIN_LIST} -d ${element}";
-      done      
-      IFS=', ' read -r -a array <<< "$PHPMYADMIN_ALL_SERVER_URLS"
-      for element in "${array[@]}"
-      do
-         DOMAIN_LIST="${DOMAIN_LIST} -d ${element}";
-      done
-echo $DOMAIN_LIST
-      # Do not add any double quoetes on ${DOMAIN_LIST}, as there are multiple options together
-      # if the var is enclsied in double quotes, it will be passed as one single domian - wonn't work 
-      certbot --nginx --non-interactive --agree-tos --email "${ADMIN_EMAIL}" ${DOMAIN_LIST}
-      if [ -f etc/letsencrypt/live/thetek.co.uk/fullchain.pem ] &&  [ -f /etc/letsencrypt/live/thetek.co.uk/privkey.pem ]
-      then
-        echo "Certificate installed successfully ... "
-      fi
-    fi
+    echo "Failed to install letsencrypt certificates - LETSENCRYPT_ADMIN_EMAIL environemnt variable not set";
+  elif [ -z "${WORDPRESS_ALL_SERVER_URLS}" ]
+  then
+    echo "Failed to install letsencrypt certificates - WORDPRESS_ALL_SERVER_URLS environemnt variable not set";
+  elif [ -z "${PHPMYADMIN_ALL_SERVER_URLS}" ]
+  then
+    echo "Failed to install letsencrypt certificates - PHPMYADMIN_ALL_SERVER_URLS environemnt variable not set";
   else
-    echo "SSL certificates already exist for wordpress and phpmyadmin"
+    # Check and set TEST_MODE_FLAG
+    TEST_FLAG=""
+    if [ -n "${LETSENCRYPT_TEST_MODE}" ] && [ "${LETSENCRYPT_TEST_MODE}" == "yes" ]
+    then
+      # Install test certificate
+      TEST_FLAG="--test-cert"
+    fi
+    # Install the certificate
+    certbot --nginx --non-interactive --agree-tos --expand ${TEST_FLAG} --email "${LETSENCRYPT_ADMIN_EMAIL}" -d "${DOMAIN_LIST}"
+    #
+    # check if all certificates get installed
+    NOT_INSTALLED_LIST=$(getDomainList)
+    if [ -n "${NOT_INSTALLED_LIST}" ]
+    then
+      echo "Failed to installed Lets Encrypt certificate(s) for [${NOT_INSTALLED_LIST}]"
+    else
+      echo "Lets Encrypt TEST certificates for wordpress and phpmyadmin installed successfully"
+    fi
   fi
 fi
 
 
-
-# Report if any of the conf is not found
-if [ -f "/etc/nginx/conf.d/wordpress.conf" ]
+# check if all certificates get installed
+echo "Scheduling cron job for certificate renewal ..."
+if [ -f "/renewcertcron" ]
 then
-  echo "Wordpress conf file found - starting wordpress nginx web service ..."
+    echo "Cron job for cert renewal is already scheduled"
 else
-  echo "FATAL ERROR - the wordpress conf file not found - A reinstallation of the container may be required ..."
+  echo "Cron job for cert renewal is not scheduled - No certificate installed."
+  echo "Creating cron job for cert renewal"
+  # Create a cron job file
+  echo "Creating renew certificate cron job"
+  crontab -l                                                         >   /renewcertcron
+  echo "# The weekly cron task to renew lets encrypt certificates"   >>  /renewcertcron
+  echo "0 0 * * * root certbot renew >> /var/log/certboot/renew.log" >>  /renewcertcron
+  # Schedule the cron job
+  crontab /renewcertcron
 fi
-if [ -f "/etc/nginx/conf.d/phpmyadmin.conf" ]
-then
-  echo "PHPMyAdmin conf file found - starting phpmyadmin nginx web service ..."
-else
-  echo "FATAL ERROR - the phpmyadmin conf file not found - A reinstallation of the container may be required ..."
-fi
-
 
 
 # Shedule cron task
-/usr/sbin/crond -f -l 8
+#/usr/sbin/crond -f -l 8
 
-exec "$@"   
+echo "Current crontab:"
+crontab -l
+
+exec "$@"

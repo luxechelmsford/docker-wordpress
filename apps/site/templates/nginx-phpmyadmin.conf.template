@@ -5,10 +5,10 @@ server {
   root          /var/www/phpmyadmin;
   index         index.php;
 
-  location ~* \.php$ {
+  location ~* \.php\$ {
     fastcgi_pass   phpmyadmin:9000;
     include        fastcgi_params;
-    fastcgi_param  SCRIPT_FILENAME $document_root$fastcgi_script_name;
-    fastcgi_param  SCRIPT_NAME     $fastcgi_script_name;
+    fastcgi_param  SCRIPT_FILENAME \$document_root\$fastcgi_script_name;
+    fastcgi_param  SCRIPT_NAME     \$fastcgi_script_name;
   }
 }

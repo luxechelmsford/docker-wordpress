@@ -37,14 +37,18 @@ Command line interface for the Docker-based web development environment wordpres
         <-n|--name=websiteName>         The secific website whose configration is to be added.
         <-p|--http-port=port>           Numeric port value for http connection
         <-x|--https-port=port]>         Numeric port value for ssl/https/X.509
-        <-w|--web=serverUrl>            The main web server domain url
-        [-u|--url=serverUrl]            Additional server url
+        <-w|--web-url=url>              The web url e.g. www.example.com.
+                                        The wordpress site var is set to this
+                                        So any other urls are eventually redireded to this uRL 
+        [-u|--add-url=url]              The additional url, e.g. example.com
       [-e|--edit] .................   Edit the configuration of an existing website
         <-n|--name=websiteName>         The secific website whose configration is to be added.
         [-p|--http-port=port]           Numeric port value for http connection
         [-x|--https-port=port]          Numeric port value for ssl/https/X.509
-        [-w|--web=serverUrl]            The main web server domain url
-        [-u|--url=serverUrl]            Additional server url
+        [-w|--web-url=url]              The web url e.g. www.example.com.
+                                        The wordpress site var is set to this
+                                        So any other urls are eventually redireded to this uRL 
+        [-u|--add-url=url]              The additional url, e.g. example.com
       [-v|--view] .................   View all site details ot the specified one's
         [-n|--name=websiteName]         The name of the site to be viewed. -s= will list all sites
       [-d|--del] ..................   Delete the specified site detials
@@ -173,7 +177,7 @@ restart () {
 # Generate a wildcard certificate
 cert_generate () {
     rm -Rf .docker/nginx/certs/$1.*
-    docker-compose -f docker-compose.yml -f docker-compose-$1.yml  --env-file ./config/.env.$1 run --rm nginx sh -c "cd /etc/nginx/certs && touch openssl.cnf && cat /etc/ssl/openssl.cnf > openssl.cnf && echo \"\" >> openssl.cnf && echo \"[ SAN ]\" >> openssl.cnf && echo \"subjectAltName=DNS.1:$2,DNS.2:*.$2\" >> openssl.cnf && openssl req -x509 -sha256 -nodes -newkey rsa:4096 -keyout $1.key -out $1.crt -days 3650 -subj \"/CN=*.$2\" -config openssl.cnf -extensions SAN && rm openssl.cnf"
+    docker-compose -f docker-compose.yml -f docker-compose-$1.yml  --env-file ./apps/.env.$1 run --rm nginx sh -c "cd /etc/nginx/certs && touch openssl.cnf && cat /etc/ssl/openssl.cnf > openssl.cnf && echo \"\" >> openssl.cnf && echo \"[ SAN ]\" >> openssl.cnf && echo \"subjectAltName=DNS.1:$2,DNS.2:*.$2\" >> openssl.cnf && openssl req -x509 -sha256 -nodes -newkey rsa:4096 -keyout $1.key -out $1.crt -days 3650 -subj \"/CN=*.$2\" -config openssl.cnf -extensions SAN && rm openssl.cnf"
     down "$1"
 }
 
@@ -198,7 +202,7 @@ cert_install () {
 # to do correct this to also work with linux
 SCRIPT_PATH=$(cd "$(dirname "$0")"; pwd)
 ROOT_DIR=${SCRIPT_PATH%/*}
-SCRIPT_FILE="${SCRIPT_PATH}/site" 
+SCRIPT_FILE="${SCRIPT_PATH}/wpcmd" 
 
 # set the environment variables from the argument
 # iterate all but the last
@@ -239,11 +243,11 @@ elif [ -z "${COMMAND}" ]; then
   echo ""
   exit 1;
 elif [ "${COMMAND}" == "site" ]; then
-  bash "${SCRIPT_PATH}/config/site" ${options[@]}
+  bash "${SCRIPT_PATH}/apps/site/site" ${options[@]}
   exit 1;
 elif [ "${COMMAND}" == "cert-gen" ] || [ "${COMMAND}" == "cert-inst" ]; then
   # to do handle certification code
-  bash "${SCRIPT_PATH}/config/cert" ${options}
+  bash "${SCRIPT_PATH}/apps/cert" ${options}
 fi
 
 OPTION_I_COMMANDS=("build" "logs")

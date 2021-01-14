@@ -1,0 +1,8 @@
+WPBACKUP_MYSQL_PORT=3306
+WPBACKUP_MYSQL_HOST=mysql
+WPBACKUP_MYSQL_USERNAME=luxe_test
+WPBACKUP_MYSQL_DATABASE=luxe_test
+WPBACKUP_MYSQL_PASSWORD=kgB7yJCwGYq2jeQH
+WPBACKUP_WEBSITE_NAME=luxe-test
+NOW=$(date +\"%Y-%m-%d-%H%M%S\")
+0 0 * * *    backup.sh > /var/backups/logs/backup-$NOW.log
