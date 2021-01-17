@@ -12,6 +12,7 @@ if [ -z "${WPBACKUP_DB_PASSWORD_FILE}" ];   then echo "Error: WPBACKUP_DB_PASSWO
 if [ -z "${WPBACKUP_WPCONTENT_DIR}" ];      then echo "Error: WPBACKUP_WPCONTENT_DIR not set";      echo "Finished: FAILURE"; exit 1; fi
 if [ -z "${WPBACKUP_BACKUP_DIR}" ];         then echo "Error: WPBACKUP_BACKUP_DIR not set";         echo "Finished: FAILURE"; exit 1; fi
 if [ -z "${WPBACKUP_LOG_DIR}" ];            then echo "Error: WPBACKUP_LOG_DIR not set";            echo "Finished: FAILURE"; exit 1; fi
+#if [ -z "${WPBACKUP_ENABLED}" ];           then echo "Error: WPBACKUP_ENABLED not set";            echo "Finished: FAILURE"; exit 1; fi
 #if [ -z "${WPBACKUP_RESTORE_KEY}" ];       then echo "Error: WPBACKUP_RESTORE_KEY not set";        echo "Finished: FAILURE"; exit 1; fi
 #if [ -z "${WPBACKUP_WPCUSTOM_FILENAME}" ]; then echo "Error: WPBACKUP_WPCUSTOM_FILENAME not set";  echo "Finished: FAILURE"; exit 1; fi
 #if [ -z "${WPBACKUP_DROPBOX_TOKEN_FILE}" ];then echo "Error: WPBACKUP_DROPBOX_TOKEN_FILE not set"; echo "Finished: FAILURE"; exit 1; fi
@@ -54,46 +55,14 @@ EOF
   fi
 fi
 
-# First creating the webdav mounts
-if [ ! -f "/etc/wpbackup-cron" ]
+
+# load the environment and check if restore is required
+if [ ! -f "/etc/wpbackup-envs" ]
 then
-  # Schedule the cron task
-  echo "Creating backup/restore cron jobs ..."
-#CRON_COMMAND="0 ${WPBACKUP_TIME:-0} * * * bash /bin/backup.sh"
-#echo DATEVAR="date +%Y-%m-%d-%H%M"                                                          >   /etc/wpbackup-cron
-#echo "NOW=echo \$(\$DATEVAR)"                                                               >>  /etc/wpbackup-cron
-#echo "WPBACKUP_WEBSITE=\"${WPBACKUP_WEBSITE}\""                                             >>  /etc/wpbackup-cron
-#echo "WPBACKUP_DB_NAME=\"${WPBACKUP_DB_NAME}\""                                             >>  /etc/wpbackup-cron
-#echo "WPBACKUP_DB_USER=\"${WPBACKUP_DB_USER}\""                                             >>  /etc/wpbackup-cron
-#echo "WPBACKUP_WPCONTENT_DIR=\"${WPBACKUP_WPCONTENT_DIR}\""                                 >>  /etc/wpbackup-cron
-#echo "WPBACKUP_BACKUP_DIR=\"${WPBACKUP_BACKUP_DIR}\""                                       >>  /etc/wpbackup-cron
-#echo "WPBACKUP_LOG_DIR=\"${WPBACKUP_LOG_DIR}\""                                             >>  /etc/wpbackup-cron
-#echo "WPBACKUP_RESTORE_KEY=\"${WPBACKUP_RESTORE_KEY}\""                           >>  /etc/wpbackup-cron
-#echo "WPBACKUP_WPCUSTOM_FILENAME=\"${WPBACKUP_WPCUSTOM_FILENAME}\""                         >>  /etc/wpbackup-cron
-#echo "WPBACKUP_DROPBOX_TOKEN_FILE=\"${WPBACKUP_DROPBOX_TOKEN_FILE}\""                       >>  /etc/wpbackup-cron
-#echo "WPBACKUP_GPG_PASSWORD_FILE=\"${WPBACKUP_GPG_PASSWORD_FILE}\""                         >>  /etc/wpbackup-cron
-#echo "WP_CLEAN_DAILY_DAYS=\"${WP_CLEAN_DAILY_DAYS}\""                                       >>  /etc/wpbackup-cron
-#echo "WP_CLEAN_WEEKLY_DAYS=\"${WP_CLEAN_WEEKLY_DAYS}\""                                     >>  /etc/wpbackup-cron
-#echo "WP_CLEAN_MONTHLY_DAYS=\"${WP_CLEAN_MONTHLY_DAYS}\""                                   >>  /etc/wpbackup-cron
-#echo "${CRON_COMMAND} > ${WPBACKUP_LOG_DIR}/backup-\${date "+\%Y-\%m-\%d-\%H\%M-").log"     >>  /etc/wpbackup-cron
-#echo "0/1 0 * * * bash /bin/restore.sh > ${WPBACKUP_LOG_DIR}/restore-\${date "+\%Y-\%m-\%d-\%H\%M-").log"     >>  /etc/wpbackup-cron
-#echo "0 ${WPBACKUP_TIME:-0} * * * . /proc/1/environ; export NOW=\$(date +\"\%Y-\%m-\%d-\%H\%M\%Sa\"); /bin/restore.sh > /restore-\${NOW}; unset NOW;" > /etc/wpbackup-cron
-  
   # export environment variables in a file
-  #printenv | grep -v “no_proxy” >> /etc/docker_envs
   printenv | sed 's/^\(.*\)$/export \1/g' >  /etc/wpbackup-envs
-  # Now create the cron job that
-  #   Loads the docker-envs, sets the current date and time in a env var
-  #   Executes the backup script and then finall unsets the current date & time env var
-  echo "0 ${WPBACKUP_TIME:-0} * * * . /etc/docker_envs; export NOW=\$(date +\"\%Y-\%m-\%d-\%H\%M\"); /bin/backup.sh > ${WPBACKUP_LOG_DIR}/backup-\${NOW}.log; unset NOW;" > /etc/wpbackup-cron
 
-#echo "* * * * * . /etc/wpbackup-envs; export NOW=\$(date +\"\%Y-\%m-\%d-\%H\%M\"); /bin/restore.sh \"/var/backups/ttek-live/ttek-live-daily-2021-01-16-1644.tar.gz\" > ${WPBACKUP_LOG_DIR}/restore-\${NOW}.log; unset NOW;" > /etc/wpbackup-cron 
- #  . /etc/wpbackup-envs; export NOW=$(date +"%Y-%m-%d-%H%M%Sa"); /bin/restore.sh > /restore-${NOW}; unset NOW;
-  
-  # Schedule the backup cron job
-  crontab /etc/wpbackup-cron
-
-  # Now check if we need to restore from a restore file
+  # Check if we need to restore from a restore file
   # We can only restore on an empty database lets check that
   # Host and password information is stored in config so there is no need to pass here
   echo "Checking if we need to restore from a previous backup ..."
@@ -184,6 +153,41 @@ then
     fi
   fi
 fi
+
+
+
+# Now create the cron job
+WPBACKUP_ENABLED="${WPBACKUP_ENABLED:-"yes"}"
+if [ ! -f "/etc/wpbackup-cron" ]
+then
+  if  [ "${WPBACKUP_ENABLED}" == "yes" ]
+  then
+    # Schedule the cron task
+    echo "Creating backup/restore cron jobs ..."
+  
+    # Now create the cron job that
+    #   Loads the docker-envs, sets the current date and time in a env var
+    #   Executes the backup script and then finall unsets the current date & time env var
+    echo "0 ${WPBACKUP_TIME:-0} * * * . /etc/docker_envs; export NOW=\$(date +\"\%Y-\%m-\%d-\%H\%M\"); /bin/backup.sh > ${WPBACKUP_LOG_DIR}/backup-\${NOW}.log; unset NOW;" > /etc/wpbackup-cron
+  
+    # Schedule the backup cron job
+    crontab "/etc/wpbackup-cron"
+  else
+    echo "No cron job scheduled as WPBACKUP_ENABLED is not set to \"yes\""
+    echo "Removing any previusly scheduled cron job ..."
+    echo "" > /etc/wpbackup-cron
+    crontab "/etc/wpbackup-cron"
+    echo "Removing [/etc/wpbackup-cron] file ..."
+    if  rm -rf "/etc/wpbackup-cron"
+    then
+      echo "Removed [/etc/wpbackup-cron] file successfully"
+    else
+      echo "Failed to remove [/etc/wpbackup-cron] file"
+    fi
+  fi
+fi
+
+
 
 echo "Current crontab:"
 crontab -l

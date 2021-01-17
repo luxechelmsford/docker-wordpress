@@ -1,7 +1,7 @@
 FROM ubuntu:20.04
 
 RUN apt-get update && \
-    apt-get install -y mysql-client cron bzip2 vim sudo gpg curl && \
+    apt-get install -y mysql-client cron bzip2 vim sudo gpg curl unzip && \
     apt-get clean && \
     rm -rf /var/lib/apt/lists/*
 

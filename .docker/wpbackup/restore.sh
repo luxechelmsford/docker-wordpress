@@ -65,12 +65,21 @@ cd "${TEMP_DIR}"
 sudo tar --same-owner -xpvzf "${RESTORE_FILE}" 
 
 # Check we have the right foler structure
-if [ ! -d "${TEMP_DIR}/${WPBACKUP_WEBSITE}-backup/wp" ]
+WPSRC_DIR=""
+if [ -d "${TEMP_DIR}/${WPBACKUP_WEBSITE}-backup/wp" ]
 then
+  WPSRC_DIR="${TEMP_DIR}/${WPBACKUP_WEBSITE}-backup/wp"
+elif [ -d "${TEMP_DIR}/${WPBACKUP_WEBSITE}-backup/www/wp-content" ]
+then
+  # its an achive from an older backup script
+  WPSRC_DIR="${TEMP_DIR}/${WPBACKUP_WEBSITE}-backup/www/wp-content"
+else
   echo "Invalid archive. Folder [${TEMP_DIR}/${WPBACKUP_WEBSITE}-backup/wp] not found."
   echo "Finished: FAILURE";
   exit 1;
-elif [ ! -d "${TEMP_DIR}/${WPBACKUP_WEBSITE}-backup/db" ]
+fi
+
+if [ ! -d "${TEMP_DIR}/${WPBACKUP_WEBSITE}-backup/db" ]
 then
   echo "Invalid archive. Folder [${TEMP_DIR}/${WPBACKUP_WEBSITE}-backup/db] not found."
   echo "Finished: FAILURE";
@@ -82,7 +91,7 @@ rm -vrf "${WPBACKUP_WPCONTENT_DIR}"
 
 # Make sure the name below matches with the backup.sh script
 echo "Copying the new wp-content folder ..."
-mv -vf "${TEMP_DIR}/${WPBACKUP_WEBSITE}-backup/wp" "${WPBACKUP_WPCONTENT_DIR}"
+mv -vf "${WPSRC_DIR}" "${WPBACKUP_WPCONTENT_DIR}"
 
 echo "Fixing any file permissions ..."
 find "${WPBACKUP_WPCONTENT_DIR}" -exec chown "www-data:www-data" {} \;
@@ -94,10 +103,13 @@ find "${WPBACKUP_WPCONTENT_DIR}" -type f -exec chmod 664 {} \;
 if [ -n "${WPCUSTOM_FILE}" ] && [ -f "${WPCUSTOM_FILE}" ]
 then
   echo "Copying custom wordpress files ..."
-  rm -vrf "${TEMP_DIR}/${WPBACKUP_WEBSITE}-custom"
-  sudo tar --same-owner xpvzf "${WPCUSTOM_FILE}" -C "${TEMP_DIR}}"
-  # move it to the parent folder of 
-  mv -vrf "${TEMP_DIR}/${WPBACKUP_WEBSITE}-custom" "${WPBACKUP_WPCONTENT_DIR%/*}"
+  echo "From: [${WPCUSTOM_FILE}]"
+  echo "To:   [${WPBACKUP_WPCONTENT_DIR%/*}]"
+  unzip "${WPCUSTOM_FILE}" -d "${WPBACKUP_WPCONTENT_DIR%/*}" 
+  #rm -vrf "${TEMP_DIR}/${WPBACKUP_WEBSITE}-custom"
+  #sudo tar --same-owner xpvzf "${WPCUSTOM_FILE}" -C "${TEMP_DIR}}"
+  ## move it to the parent folder of 
+  #mv -vrf "${TEMP_DIR}/${WPBACKUP_WEBSITE}-custom" "${WPBACKUP_WPCONTENT_DIR%/*}"
 fi
 
 # restore database

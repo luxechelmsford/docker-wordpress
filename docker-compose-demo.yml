@@ -86,8 +86,8 @@ services:
       LETSENCRYPT_MODE:              "disabled"
       LETSENCRYPT_LOG_DIR:           /var/log/letsencrypt
       NGINX_LOG_DIR:                 /var/log/nginx
-      WORDPRESS_ALL_SERVER_URLS:     www.example.com example.com
-      PHPMYADMIN_ALL_SERVER_URLS:    phpmyadmin.example.com
+      WORDPRESS_ALL_SERVER_URLS:     "www.example.com example.com"
+      PHPMYADMIN_ALL_SERVER_URLS:    "phpmyadmin.example.com"
       WORDPRESS_CONF_FILE:           /run/secrets/demo-wordpress.conf
       PHPMYADMIN_CONF_FILE:          /run/secrets/demo-phpmyadmin.conf
     volumes:
@@ -115,7 +115,8 @@ services:
     restart:                         always
     working_dir:                     /var/backups/demo
     environment:
-      WPBACKUP_WEBSITE:              demo
+      WPBACKUP_ENABLED:              "yes"
+      WPBACKUP_WEBSITE:              "demo"
       WPBACKUP_DB_HOST:              mysql
       WPBACKUP_DB_NAME:              demo
       WPBACKUP_DB_USER:              demo
@@ -152,7 +153,7 @@ services:
     working_dir:                     /mnt/webdrive/demo
     environment:
       WEBDRIVE_URL:                  https://webdrive/example.com:5001/share/
-      WEBDRIVE_REMOTE_PATH:          demo
+      WEBDRIVE_REMOTE_PATH:          "demo"
       WEBDRIVE_SECRETS_FILE:         /run/secrets/demo-secrets
     volumes:
       - wpbackup-data-volume:/var/backups/demo:cached

@@ -97,3 +97,5 @@ then
 fi
 
 echo "[$(date +"%Y-%m-%d-%H%M%S")] Finishing backup task ..."
+
+exit 0;
