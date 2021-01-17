@@ -1,41 +1,43 @@
 #!/bin/bash
 
-echo "Entered webdrive entrypoint script ..."
+echo "*******************************************************************"
+echo "[$(date +"%Y-%m-%d-%H%M%S")] Entered webdrive entrypoint script ..."
 
 
+if [ -z "${WEBDRIVE_URL}" ];          then echo "Error: WEBDRIVE_URL not set";          echo "Finished: FAILURE"; exit 1; fi
+if [ -z "${WEBDRIVE_REMOTE_PATH}" ];  then echo "Error: WEBDRIVE_REMOTE_PATH not set";  echo "Finished: FAILURE"; exit 1; fi
+if [ -z "${WEBDRIVE_SECRETS_FILE}" ]; then echo "Error: WEBDRIVE_SECRETS_FILE not set"; echo "Finished: FAILURE"; exit 1; fi
+ 
 # Copy webdrive secrets
-if [ -z "${WEBDRIVE_SECRETS_FILE}" ]
+DAVFS_FILE_MARKER="# Webdrive credential for ${WEBDRIVE_URL}"
+if grep -qxF "${DAVFS_FILE_MARKER}" "/etc/davfs2/secrets"
 then
-  echo "WORDPRESS_CONF_FILE must be defined"
-# /etc/davfs2/secrets was removed in the image (DockerFile)
-# Hence we can check if we have copied our secrets file here
-elif [ ! -f "/etc/davfs2/secrets" ] 
-then
-  echo "Copying the webdrive secrets conf file ..."
-  cp "${WEBDRIVE_SECRETS_FILE}" "/etc/davfs2/secrets"
-  if [ -f "/etc/davfs2/secrets" ]
+  echo "The webdrive credentials had been copied to davfs2 secrets file in the peious run"
+else
+  echo "Copying the webdrive credentials to davfs2 secrets file ..."
+  if echo "${DAVFS_FILE_MARKER}"  >> "/etc/davfs2/secrets" && cat "${WEBDRIVE_SECRETS_FILE}" >> "/etc/davfs2/secrets"
+  #echo "${DAVFS_FILE_MARKER}"; cat "${WEBDRIVE_SECRETS_FILE}" >> "/etc/davfs2/secrets"
   then
-    echo "The davfs2 secerts files copied successfully"
+    echo "The webdrive credentials copied to davfs2 secrets file successfully"
   else
-    echo "Failed to davfs2 secerts files to the davfs2 folder"
+    echo "Failed to copy webdrive credentials to davfs2 secrets file"
   fi
 fi
 
 
-if [ -z "${WEBDRIVE_URL}" ]
+# Mount the drive
+if ! grep -qxF "${DAVFS_FILE_MARKER}" "/etc/davfs2/secrets"
 then
-  echo "WEBDRIVE_URL is not set";
-elif [ -z "${WEBDRIVE_REMOTE_PATH}" ]
-then
-  echo "WEBDRIVE_REMOTE_PATH is not set";
-elif [ -f "/etc/davfs2/secrets" ]
-then
+  echo "Skipping the mounting of the web drive. Webdrive credentials not found in the secrets file"
+else
   # Check if the webdrive is mounted
   DRIVE_TYPE=$(stat --file-system --format=%T /mnt/webdrive);
-  if [ "${DRIVE_TYPE}" != "fuseblk" ]
+  if [ "${DRIVE_TYPE}" == "fuseblk" ]
   then
-    # Mount the webdav drive
-    echo "Mounting the web drive ..."
+    echo "Webdrive has already been mounted"
+  else
+    # Mount the webdrive
+    echo "Mounting the webdrive ..."
     mount -t davfs "$WEBDRIVE_URL" "/mnt/webdrive" -o uid=0,gid=users,dir_mode=755,file_mode=755
     DRIVE_TYPE=$(stat --file-system --format=%T /mnt/webdrive);
     if [ "${DRIVE_TYPE}" == "fuseblk" ]
@@ -44,7 +46,8 @@ then
       # only create the remote sub folder once the wedrive is mounted
       # If it ceated in the local drive folder then it will be mounted as overlayfs
       # and never as overlayfs and then unison will throw the following error
-      #     Fatal error: Error in canonizing path: No such file or directory
+      #     Fatal error: Error in canonizing path:
+      # .   /mnt/webdrive/website-dir: No such file or directory
       if [ ! -d "/mnt/webdrive/${WEBDRIVE_REMOTE_PATH}" ]
       then
         mkdir -p "/mnt/webdrive/${WEBDRIVE_REMOTE_PATH}"
@@ -58,12 +61,13 @@ then
     else
       echo "Failed to mount the webdrive"
     fi
-  else
-    echo "Webdrive has already been mounted"
   fi
 fi
-
 
 # Start the endless sync process
 echo "Starting unison process ..."
 unison
+
+
+echo "[$(date +"%Y-%m-%d-%H%M%S")] Exiting webdrive entrypoint script ..."
+echo "*******************************************************************"

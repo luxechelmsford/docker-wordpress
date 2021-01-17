@@ -27,12 +27,15 @@ services:
       MYSQL_ALLOW_EMPTY_PASSWORD:    "yes"
     volumes:
       - mysql-data-volume:/var/lib/mysql
+      - wpbackup-data-volume:/var/backups/demo
     secrets:
       - source:                      mysql-pwd-key
         target:                      /run/secrets/demo-mysqldb-pwd.txt
     #configs:
       - source:                      mysql-cnf-key
         target:                      /etc/mysql/conf.d/my.cnf
+    cap_add:
+      - SYS_NICE  # CAP_SYS_NICE
 
   # Wordpress Service
   wordpress:
@@ -79,13 +82,16 @@ services:
     restart:                         always
     working_dir:                     /etc/nginx
     environment:
-      LETSENCRYPT_ADMIN_EMAIL:       admin@example.com
-      LETSENCRYPT_TEST_MODE:         "yes"
+      LETSENCRYPT_ADMIN_EMAIL:       "admin@example.com"
+      LETSENCRYPT_MODE:              "disabled"
+      LETSENCRYPT_LOG_DIR:           /var/log/letsencrypt
+      NGINX_LOG_DIR:                 /var/log/nginx
       WORDPRESS_ALL_SERVER_URLS:     www.example.com example.com
       PHPMYADMIN_ALL_SERVER_URLS:    phpmyadmin.example.com
       WORDPRESS_CONF_FILE:           /run/secrets/demo-wordpress.conf
       PHPMYADMIN_CONF_FILE:          /run/secrets/demo-phpmyadmin.conf
     volumes:
+      - log-data-volume:/var/log
       - nginx-cert-volume:/etc/letsencrypt
       - wordpress-data-volume:/var/www/html:ro,delegated
       - phpmyadmin-data-volume:/var/www/phpmyadmin:ro,delegated
@@ -109,18 +115,34 @@ services:
     restart:                         always
     working_dir:                     /var/backups/demo
     environment:
-      WPBACKUP_CRON_FILE:            /etc/wpbackup-cron
+      WPBACKUP_WEBSITE:              demo
+      WPBACKUP_DB_HOST:              mysql
+      WPBACKUP_DB_NAME:              demo
+      WPBACKUP_DB_USER:              demo
+      WPBACKUP_DB_PASSWORD_FILE:     /run/secrets/demo-mysqldb-pwd.txt
+      WPBACKUP_WPCONTENT_DIR:        /var/www/html/wp-content
+      WPBACKUP_BACKUP_DIR:           /var/backups/demo
+      WPBACKUP_LOG_DIR:              /var/log/wpbackup
+      WPBACKUP_RESTORE_KEY:          restore-me.txt
+      WPBACKUP_WPCUSTOM_KEY:         wpcustom.txt
+      WPBACKUP_DROPBOX_TOKEN_FILE:   /run/secrets/dropbox-token.txt
+      WPBACKUP_GPG_PASSWORD_FILE:    /run/secrets/gpg-password.txt
+      WP_CLEAN_DAILY_DAYS:           30
+      WP_CLEAN_WEEKLY_DAYS:          180
+      WP_CLEAN_MONTHLY_DAYS:         365
     volumes:
-      - wordpress-data-volume:/var/www/html:ro,delegated
-      - wpbackup-data-volume:/var/backups/demo:cached
+      - log-data-volume:/var/log
+      - wordpress-data-volume:/var/www/html
+      - wpbackup-data-volume:/var/backups/demo
     depends_on:
       - mysql
     secrets:
       - source:                      mysql-pwd-key
         target:                      /run/secrets/demo-mysqldb-pwd.txt
-    #configs:
-      - source:                      wpbackup-crn-key            
-        target:                      /etc/wpbackup-cron
+      - source:                      dropbox-token-key
+        target:                      /run/secrets/dropbox-token.txt
+      - source:                      gpg-password-key
+        target:                      /run/secrets/gpg-password.txt
   
   # Webdrive service
   webdrive:
@@ -129,8 +151,8 @@ services:
     restart:                         always
     working_dir:                     /mnt/webdrive/demo
     environment:
-      WEBDRIVE_REMOTE_PATH:          demo
       WEBDRIVE_URL:                  https://webdrive/example.com:5001/share/
+      WEBDRIVE_REMOTE_PATH:          demo
       WEBDRIVE_SECRETS_FILE:         /run/secrets/demo-secrets
     volumes:
       - wpbackup-data-volume:/var/backups/demo:cached
@@ -153,6 +175,10 @@ services:
 secrets:
   mysql-pwd-key:
     file:                            ./.docker-compose/mysql/secrets/static/demo-mysqldb-pwd.txt
+  dropbox-token-key:
+    file:                            ./.docker-compose/wpbackup/secrets/static/dropbox-token.txt
+  gpg-password-key:
+    file:                            ./.docker-compose/wpbackup/secrets/static/gpg-password.txt
   webdrive-cer-key:
     file:                            ./.docker-compose/webdrive/secrets/static/demo-webdrive-cer.cer
   webdrive-dfs-key:
@@ -167,14 +193,13 @@ secrets:
     file:                            ./.docker-compose/nginx/configs/auto-gen/demo-wordpress.conf
   nginx-phpmyadmin-cnf-key:
     file:                            ./.docker-compose/nginx/configs/auto-gen/demo-phpmyadmin.conf
-  wpbackup-crn-key:
-    file:                            ./.docker-compose/wpbackup/configs/auto-gen/demo-wpbackup-cron
   webdrive-prf-key:
     file:                            ./.docker-compose/webdrive/configs/auto-gen/demo-default.prf
 
 
 # Volumes
 volumes:
+  log-data-volume:                   {}
   mysql-data-volume:                 {}
   wordpress-data-volume:             {}
   phpmyadmin-data-volume:            {}

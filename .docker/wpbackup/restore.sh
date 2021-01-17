@@ -1,64 +1,113 @@
 #!/bin/bash
 set -e
 
-if ! [[ "$1" ]]
+echo "[$(date +"%Y-%m-%d-%H%M%S")] Staritng restore task ..."
+
+
+if [ -z "${WPBACKUP_WEBSITE}" ];       then echo "Error: WPBACKUP_WEBSITE not set";       echo "Finished: FAILURE"; exit 1; fi
+if [ -z "${WPBACKUP_DB_NAME}" ];       then echo "Error: WPBACKUP_DB_NAME not set";       echo "Finished: FAILURE"; exit 1; fi
+if [ -z "${WPBACKUP_DB_USER}" ];       then echo "Error: WPBACKUP_DB_USER not set";       echo "Finished: FAILURE"; exit 1; fi
+if [ -z "${WPBACKUP_WPCONTENT_DIR}" ]; then echo "Error: WPBACKUP_WPCONTENT_DIR not set"; echo "Finished: FAILURE"; exit 1; fi
+if [ -z "${WPBACKUP_BACKUP_DIR}" ];    then echo "Error: WPBACKUP_BACKUP_DIR not set";    echo "Finished: FAILURE"; exit 1; fi
+if [ ! -f ~/.my.cnf  ];                then echo "Error: ~/.my.cnf does not exist";       echo "Finished: FAILURE"; exit 1; fi
+
+# Read the command line args. Expected parameters are:
+# <$1>  Mandatory, the backup tar file to be restored from
+# [$2]  Optional,  the wpcustom zip file to be copied on the deafult wordpress content
+#
+RESTORE_FILE=$1
+if [ -z "${RESTORE_FILE}" ]
 then
-    echo "Error: Backup name missing"
-    echo "Please specify a backup name, e.g. 'restore 20141104'"
+  echo "Error: The backup file to restore from needs to be passed as first parameter"
+  echo "Finished: FAILURE"
+  exit 1
+fi
+#
+if [ ! -f "${RESTORE_FILE}" ]
+then
+  echo "The restore file  [${RESTORE_FILE}] does not exist."
+  echo "Finished: FAILURE"
+  exit 1;
+fi
+#
+WPCUSTOM_FILE=${2}
+if [ -n "${WPCUSTOM_FILE}" ]
+then
+  if [ ! -f "${WPCUSTOM_FILE}" ]
+  then
+    echo "The restore file  [${WPCUSTOM_FILE}] does not exist."
     echo "Finished: FAILURE"
-    exit 1
+    exit 1;
+  fi
 fi
 
-if [ -z "$MYSQL_ENV_MYSQL_HOST" ]; then echo "Error: MYSQL_ENV_MYSQL_HOST not set"; echo "Finished: FAILURE"; exit 1; fi
-if [ -z "$MYSQL_ENV_MYSQL_USER" ]; then echo "Error: MYSQL_ENV_MYSQL_USER not set"; echo "Finished: FAILURE"; exit 1; fi
-if [ -z "$MYSQL_ENV_MYSQL_DATABASE" ]; then echo "Error: MYSQL_ENV_MYSQL_DATABASE not set"; echo "Finished: FAILURE"; exit 1; fi
-if [ -z "$MYSQL_ENV_MYSQL_PASSWORD" ]; then echo "Error: MYSQL_ENV_MYSQL_PASSWORD not set"; echo "Finished: FAILURE"; exit 1; fi
-if [ -z "$MYSQL_PORT_3306_TCP_PORT" ]; then echo "Error: MYSQL_PORT_3306_TCP_PORT not set"; echo "Finished: FAILURE"; exit 1; fi
-
-if ! [[ $1 =~ ^[a-zA-Z0-9_-]+$ ]]
+# Now check if the database is empty
+# Host and password information is stored in config so there is no need to pass here
+DB_TABLES=$(echo "show tables" | mysql -u "${WPBACKUP_DB_USER}" "${WPBACKUP_DB_NAME}")
+if  [ -n "${DB_TABLES}" ]
 then
-  echo "The given backup name does not match the expected pattern: only characters, digits, underscore and dash are allowed ([a-zA-Z0-9_-])."
-  echo 'Finished: FAILURE'
-  exit 1
+  echo "Failed to restore as the database is NOT EMPTY."
+  echo "If restore is required, please delete the database"
+  echo "Finished: FAILURE";
+  exit 1;
 fi
 
-FILES_ARCHIVE="/backups/backup_$1.tar.gz"
-SQL_ARCHIVE="/backups/backup_$1.sql.bz2"
+# untar the achhive
+TEMP_DIR="/tmp"
 
-if [[ ! -f "${FILES_ARCHIVE}" ]]
+# Make sure the name below matches with the backup.sh script
+echo "Removing any previous restore folder ..."
+rm -rf "${TEMP_DIR}/${WPBACKUP_WEBSITE}-backup"
+
+echo "Uncompressing the backup tar ..."
+echo "to be deleted ${RESTORE_FILE}"
+cd "${TEMP_DIR}"
+sudo tar --same-owner -xpvzf "${RESTORE_FILE}" 
+
+# Check we have the right foler structure
+if [ ! -d "${TEMP_DIR}/${WPBACKUP_WEBSITE}-backup/wp" ]
 then
-  echo "The file $FILES_ARCHIVE does not exist. Aborting."
-  echo "Finished: FAILURE."
-  exit 1
-fi
-
-if [[ ! -f "${SQL_ARCHIVE}" ]]
+  echo "Invalid archive. Folder [${TEMP_DIR}/${WPBACKUP_WEBSITE}-backup/wp] not found."
+  echo "Finished: FAILURE";
+  exit 1;
+elif [ ! -d "${TEMP_DIR}/${WPBACKUP_WEBSITE}-backup/db" ]
 then
-  echo "The file $SQL_ARCHIVE does not exist. Aborting."
-  echo "Finished: FAILURE."
-  exit 1
+  echo "Invalid archive. Folder [${TEMP_DIR}/${WPBACKUP_WEBSITE}-backup/db] not found."
+  echo "Finished: FAILURE";
+  exit 1;
 fi
 
+echo "Deleting existing wp-content directory ..."
+rm -vrf "${WPBACKUP_WPCONTENT_DIR}"
 
-# cleanup html folder
-echo "deleting files from /var/www/html/"
-rm -R /var/www/html/*
+# Make sure the name below matches with the backup.sh script
+echo "Copying the new wp-content folder ..."
+mv -vf "${TEMP_DIR}/${WPBACKUP_WEBSITE}-backup/wp" "${WPBACKUP_WPCONTENT_DIR}"
 
-# restore files
-echo "restoring files from $FILES_ARCHIVE to /var/www/html"
-tar -xzf "${FILES_ARCHIVE}" --directory="/var/www/html/"
+echo "Fixing any file permissions ..."
+find "${WPBACKUP_WPCONTENT_DIR}" -exec chown "www-data:www-data" {} \;
+find "${WPBACKUP_WPCONTENT_DIR}" -exec chgrp "www-data" {} \;
+find "${WPBACKUP_WPCONTENT_DIR}" -type d -exec chmod 775 {} \;
+find "${WPBACKUP_WPCONTENT_DIR}" -type f -exec chmod 664 {} \;
 
-# update wp-config.php
-sed -i s/"define('DB_NAME', '.*');"/"define('DB_NAME', '$MYSQL_ENV_MYSQL_DATABASE');"/g /var/www/html/wp-config.php
-sed -i s/"define('DB_USER', '.*');"/"define('DB_USER', '$MYSQL_ENV_MYSQL_USER');"/g /var/www/html/wp-config.php
-sed -i s/"define('DB_PASSWORD', '.*');"/"define('DB_PASSWORD', '$MYSQL_ENV_MYSQL_PASSWORD');"/g /var/www/html/wp-config.php
-sed -i s/"define('DB_HOST', '.*');"/"define('DB_HOST', '$MYSQL_ENV_MYSQL_HOST:$MYSQL_PORT_3306_TCP_PORT');"/g /var/www/html/wp-config.php
-
-# set correct file owner
-chown -R www-data:www-data /var/www/html
+# Copy any customised wordpress files, if passed via WPCUSTOM_FILE
+if [ -n "${WPCUSTOM_FILE}" ] && [ -f "${WPCUSTOM_FILE}" ]
+then
+  echo "Copying custom wordpress files ..."
+  rm -vrf "${TEMP_DIR}/${WPBACKUP_WEBSITE}-custom"
+  sudo tar --same-owner xpvzf "${WPCUSTOM_FILE}" -C "${TEMP_DIR}}"
+  # move it to the parent folder of 
+  mv -vrf "${TEMP_DIR}/${WPBACKUP_WEBSITE}-custom" "${WPBACKUP_WPCONTENT_DIR%/*}"
+fi
 
 # restore database
-echo "restoring data from mysql dump file $SQL_ARCHIVE"
-bunzip2 < "${SQL_ARCHIVE}" | mysql --user="${MYSQL_ENV_MYSQL_USER}" --password="${MYSQL_ENV_MYSQL_PASSWORD}" --host="${MYSQL_ENV_MYSQL_HOST}" "${MYSQL_ENV_MYSQL_DATABASE}"
+echo "Restoring data from mysql dump file ..."
+# Host and password information is stored in config so there is no need to pass here
+SQL_FILENAME="${RESTORE_FILE##*/}"     # remove directry from the path
+SQL_FILENAME="${SQL_FILENAME%.*}"      # remove .gz from the filename
+SQL_FILENAME="${SQL_FILENAME%.*}.sql"  # remove .tar from the filename and add .sql
+mysql -u "${WPBACKUP_DB_USER}" "${WPBACKUP_DB_NAME}" < "${TEMP_DIR}/${WPBACKUP_WEBSITE}-backup/db/${SQL_FILENAME}"
 
-echo 'Finished: SUCCESS'
+echo "[$(date +"%Y-%m-%d-%H%M%S")] Finishing restore task ..."
+
+exit 0;

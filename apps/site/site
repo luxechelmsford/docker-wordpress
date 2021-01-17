@@ -159,10 +159,11 @@ rebuiltFilesFromTemlates() {
   local HOST_NGINX_PHPMYADMIN_CNF_FILE="${HOST_DOCKER_COMPOSE_DIR}/nginx/configs/auto-gen/${NGINX_PHPMYADMIN_CNF_FILENAME}"
   printf "%s\n" "$(apply_shell_expansion ${SCRIPT_PATH}/templates/nginx-phpmyadmin.conf.template)" > ${HOST_NGINX_PHPMYADMIN_CNF_FILE}
   #
-  # Generate wpbackup cron task file
-  local WPBACKUP_CRN_FILENAME="${WEBSITE_NAME}-wpbackup-cron"
-  local HOST_WPBACKUP_CRN_FILE="${HOST_DOCKER_COMPOSE_DIR}/wpbackup/configs/auto-gen/${WPBACKUP_CRN_FILENAME}"
-  printf "%s\n" "$(apply_shell_expansion ${SCRIPT_PATH}/templates/wpbackup-cron-task.template)" > ${HOST_WPBACKUP_CRN_FILE}
+  # Set the environment variable for wpbackup dropbox token file
+  local HOST_DROPBOX_TOKEN_FILE="${HOST_DOCKER_COMPOSE_DIR}/wpbackup/secrets/static/${DROPBOX_TOKEN_FILENAME}"
+  #
+  # Set the environment variable for wpbackup gpg password file
+  local HOST_GPG_PASSWORD_FILE="${HOST_DOCKER_COMPOSE_DIR}/wpbackup/secrets/static/${GPG_PASSWORD_FILENAME}"
   #
   # Set the environment variable for webdrive certificate file
   if [ -z "${WEBDRIVE_CER_FILENAME}" ]; then WEBDRIVE_CER_FILENAME="webdrive-cer.cer"; fi
