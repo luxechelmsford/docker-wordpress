@@ -3,18 +3,21 @@ set -e
 
 echo "[$(date +"%Y-%m-%d-%H%M%S")] Staritng restore task ..."
 
+if [ -z "${WPBACKUP_WEBSITE}" ];       then echo "Error: WPBACKUP_WEBSITE not set";                echo "Finished: FAILURE"; exit 1; fi
+if [ -z "${WPBACKUP_DB_NAME}" ];       then echo "Error: WPBACKUP_DB_NAME not set";                echo "Finished: FAILURE"; exit 1; fi
+if [ -z "${WPBACKUP_DB_USER}" ];       then echo "Error: WPBACKUP_DB_USER not set";                echo "Finished: FAILURE"; exit 1; fi
+if [ -z "${WPBACKUP_WPCONTENT_DIR}" ]; then echo "Error: WPBACKUP_WPCONTENT_DIR not set";          echo "Finished: FAILURE"; exit 1; fi
+if [ -z "${WPBACKUP_ROOT_DIR}" ];      then echo "Error: WPBACKUP_ROOT_DIR not set";               echo "Finished: FAILURE"; exit 1; fi
+if [ -z "${MYSQL_USER_CNF_FILE}" ];    then echo "Error: MYSQL_USER_CNF_FILE not set";             echo "Finished: FAILURE"; exit 1; fi
+if [ -z "${MYSQL_ROOT_CNF_FILE}" ];    then echo "Error: MYSQL_ROOT_CNF_FILE not set";             echo "Finished: FAILURE"; exit 1; fi
+if [ !  "${MYSQL_USER_CNF_FILE}" ];    then echo "Error: [${MYSQL_USER_CNF_FILE}] does not exist"; echo "Finished: FAILURE"; exit 1; fi
+if [ !  "${MYSQL_ROOT_CNF_FILE}" ];    then echo "Error: [${MYSQL_ROOT_CNF_FILE}] does not exist"; echo "Finished: FAILURE"; exit 1; fi
 
-if [ -z "${WPBACKUP_WEBSITE}" ];       then echo "Error: WPBACKUP_WEBSITE not set";       echo "Finished: FAILURE"; exit 1; fi
-if [ -z "${WPBACKUP_DB_NAME}" ];       then echo "Error: WPBACKUP_DB_NAME not set";       echo "Finished: FAILURE"; exit 1; fi
-if [ -z "${WPBACKUP_DB_USER}" ];       then echo "Error: WPBACKUP_DB_USER not set";       echo "Finished: FAILURE"; exit 1; fi
-if [ -z "${WPBACKUP_WPCONTENT_DIR}" ]; then echo "Error: WPBACKUP_WPCONTENT_DIR not set"; echo "Finished: FAILURE"; exit 1; fi
-if [ -z "${WPBACKUP_BACKUP_DIR}" ];    then echo "Error: WPBACKUP_BACKUP_DIR not set";    echo "Finished: FAILURE"; exit 1; fi
-if [ ! -f ~/.my.cnf  ];                then echo "Error: ~/.my.cnf does not exist";       echo "Finished: FAILURE"; exit 1; fi
 
 # Read the command line args. Expected parameters are:
 # <$1>  Mandatory, the backup tar file to be restored from
 # [$2]  Optional,  the wpcustom zip file to be copied on the deafult wordpress content
-#
+# [$3]  optional, -r to recreate the database, will require to be confirmed
 RESTORE_FILE=$1
 if [ -z "${RESTORE_FILE}" ]
 then
@@ -30,26 +33,68 @@ then
   exit 1;
 fi
 #
-WPCUSTOM_FILE=${2}
-if [ -n "${WPCUSTOM_FILE}" ]
+RECREATE=""
+if [ "$2" == "-r" ] || [ "$2" == "--recreate" ]
 then
-  if [ ! -f "${WPCUSTOM_FILE}" ]
+  RECREATE="yes"
+else
+  WPCUSTOM_FILE=${2}
+  if [ -n "${WPCUSTOM_FILE}" ]
   then
-    echo "The restore file  [${WPCUSTOM_FILE}] does not exist."
-    echo "Finished: FAILURE"
-    exit 1;
+    if [ ! -f "${WPCUSTOM_FILE}" ]
+    then
+      echo "The restore file  [${WPCUSTOM_FILE}] does not exist."
+      echo "Finished: FAILURE"
+      exit 1;
+    fi
+  fi
+  if [ "$3" == "-r" ] || [ "$3" == "--recreate" ]
+  then
+   RECREATE="yes"
   fi
 fi
 
 # Now check if the database is empty
 # Host and password information is stored in config so there is no need to pass here
-DB_TABLES=$(echo "show tables" | mysql -u "${WPBACKUP_DB_USER}" "${WPBACKUP_DB_NAME}")
+DB_TABLES=$(echo "show tables" | mysql "--defaults-extra-file=${MYSQL_USER_CNF_FILE}" "${WPBACKUP_DB_NAME}")
 if  [ -n "${DB_TABLES}" ]
 then
-  echo "Failed to restore as the database is NOT EMPTY."
-  echo "If restore is required, please delete the database"
-  echo "Finished: FAILURE";
-  exit 1;
+  if [ -n "${RECREATE}" ]
+  then
+    read -p "Are you sure? " -n 1 -r
+    echo    # (optional) move to a new line
+    if [[ $REPLY =~ ^[Yy]$ ]]
+    then
+      echo "Recreating mysql database ...";
+      cat <<EOF > /tmp/recreatedb.sql
+DROP DATABASE ${WPBACKUP_DB_NAME};
+CREATE DATABASE ${WPBACKUP_DB_NAME};
+GRANT ALL PRIVILEGES ON ${WPBACKUP_DB_NAME}.* TO '${WPBACKUP_DB_USER}'@'%';
+FLUSH PRIVILEGES;
+EXIT;
+EOF
+
+      mysql "--defaults-extra-file=${MYSQL_ROOT_CNF_FILE}" -u root < /tmp/recreatedb.sql
+      DB_TABLES=$(echo "show tables" | mysql "--defaults-extra-file=${MYSQL_USER_CNF_FILE}" "${WPBACKUP_DB_NAME}")
+      if  [ -n "${DB_TABLES}" ]
+      then
+        echo "Failed to restore as databse couldnt be recreated"
+        echo "Finished: FAILURE";
+        exit 1;
+      else
+        echo "Mysql config file created successfully.";
+      fi
+    else
+      echo "Failed to restore - Cancelled by user"
+      echo "Finished: FAILURE";
+      exit 1;
+    fi
+  else 
+    echo "Failed to restore as the database is NOT EMPTY."
+    echo "If restore is required, pleas use -r option to drop the database and recreate"
+    echo "Finished: FAILURE";
+    exit 1;
+  fi
 fi
 
 # untar the achhive
@@ -118,7 +163,7 @@ echo "Restoring data from mysql dump file ..."
 SQL_FILENAME="${RESTORE_FILE##*/}"     # remove directry from the path
 SQL_FILENAME="${SQL_FILENAME%.*}"      # remove .gz from the filename
 SQL_FILENAME="${SQL_FILENAME%.*}.sql"  # remove .tar from the filename and add .sql
-mysql -u "${WPBACKUP_DB_USER}" "${WPBACKUP_DB_NAME}" < "${TEMP_DIR}/${WPBACKUP_WEBSITE}-backup/db/${SQL_FILENAME}"
+mysql "--defaults-extra-file=${MYSQL_USER_CNF_FILE}" "${WPBACKUP_DB_NAME}" < "${TEMP_DIR}/${WPBACKUP_WEBSITE}-backup/db/${SQL_FILENAME}"
 
 echo "[$(date +"%Y-%m-%d-%H%M%S")] Finishing restore task ..."
 

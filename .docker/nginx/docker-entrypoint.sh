@@ -54,7 +54,6 @@ getDomainList(){
 
 
 
-
 echo "****************************************************************"
 echo "[$(date +"%Y-%m-%d-%H%M%S")] Entered nginx entrypoint script ..."
 
@@ -65,36 +64,40 @@ if [ -z "${LETSENCRYPT_LOG_DIR}" ];        then echo "Error: LETSENCRYPT_LOG_DIR
 if [ -z "${NGINX_LOG_DIR}" ];              then echo "Error: NGINX_LOG_DIR not set";              echo "Finished: FAILURE"; exit 1; fi
 if [ -z "${WORDPRESS_ALL_SERVER_URLS}" ];  then echo "Error: WORDPRESS_ALL_SERVER_URLS not set";  echo "Finished: FAILURE"; exit 1; fi
 if [ -z "${PHPMYADMIN_ALL_SERVER_URLS}" ]; then echo "Error: PHPMYADMIN_ALL_SERVER_URLS not set"; echo "Finished: FAILURE"; exit 1; fi
-if [ -z "${WORDPRESS_CONF_FILE}" ];        then echo "Error: WORDPRESS_CONF_FILE not set";        echo "Finished: FAILURE"; exit 1; fi
-if [ -z "${PHPMYADMIN_CONF_FILE}" ];       then echo "Error: PHPMYADMIN_CONF_FILE not set";       echo "Finished: FAILURE"; exit 1; fi
 
 mkdir -p "${LETSENCRYPT_LOG_DIR}"
 mkdir -p "${NGINX_LOG_DIR}"
 
+
+
 # Copy wordpress.conf
-if [ ! -f "/etc/nginx/conf.d/${WORDPRESS_CONF_FILE##*/}" ]
+if [ ! -f "/etc/nginx/conf.d/wordpress.conf" ]
 then
   echo "Copying the wordpress conf file [wordpress.conf] ..."
-  if cp "${WORDPRESS_CONF_FILE}" "/etc/nginx/conf.d/"
-  #if [ -f "/etc/nginx/conf.d/${WORDPRESS_CONF_FILE##*/}" ]
+  # Do not replace the single quote below '${WORDPRESS_ALL_SERVER_URLS}'
+  # Otherwise the envsubst does not expand the variables
+  envsubst '${WORDPRESS_ALL_SERVER_URLS}' < /etc/nginx/templates/wordpress.conf.template > /etc/nginx/conf.d/wordpress.conf
+  if [ -f "/etc/nginx/conf.d/wordpress.conf" ]
   then
-    echo "The wordpress conf files [wordpress.conf] copied successfully"
+    echo "The wordpress conf file [wordpress.conf] copied successfully."
   else
-    echo "Failed to copy wordpress conf files [wordpress.conf] to the conf.d folder"
+    echo "Failed to copy wordpress conf file [wordpress.conf]."
   fi
 fi
 
 
 # Copy phpmyadmin.conf
-if [ ! -f "/etc/nginx/conf.d/${PHPMYADMIN_CONF_FILE##*/}" ]
+if [ ! -f "/etc/nginx/conf.d/phpmyadmin.conf" ]
 then
   echo "Copying the phpmyadmin conf file [phpmyadmin.conf] ..."
-  if cp "${PHPMYADMIN_CONF_FILE}" "/etc/nginx/conf.d/"
-  #if [ -f "/etc/nginx/conf.d/${PHPMYADMIN_CONF_FILE##*/}" ]
+  # Do not replace the single quote below '${WORDPRESS_ALL_SERVER_URLS}'
+  # Otherwise the envsubst does not expand the variables
+  envsubst '${PHPMYADMIN_ALL_SERVER_URLS}' < /etc/nginx/templates/phpmyadmin.conf.template > /etc/nginx/conf.d/phpmyadmin.conf
+  if [ -f "/etc/nginx/conf.d/phpmyadmin.conf" ]
   then
-    echo "The phpmyadmin conf files [phpmyadmin.conf] copied successfully"
+    echo "The phpmyadmin conf file [phpmyadmin.conf] copied successfully."
   else
-    echo "Failed to copy phpmyadmin conf files [phpmyadmin.conf] to the conf.d folder"
+    echo "Failed to copy phpmyadmin conf file [phpmyadmin.conf]."
   fi
 fi
 

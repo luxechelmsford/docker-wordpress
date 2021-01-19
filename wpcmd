@@ -69,13 +69,20 @@ EOF
 
 # Build all of the images, or the passed one
 build () {
-  if [ -n "$IMAGE_NAME" ]  && [ "$IMAGE_NAME" != "nginx" ]  \
+  if [ -n "$IMAGE_NAME" ]  && [ "$IMAGE_NAME" != "mysql" ]  && [ "$IMAGE_NAME" != "nginx" ]  \
      &&   [ "$IMAGE_NAME" != "wpbackup" ] && [ "$IMAGE_NAME" != "webdrive" ]
   then
-    echo "Invalid image name [$IMAGE_NAME] passed. Valid values are <blank>, nginx, wpbackup and webdrive"
+    echo "Invalid image name [$IMAGE_NAME] passed. Valid values are <blank>, mysql, nginx, wpbackup and webdrive"
     echo ""
     echo ""
     exit 1;
+  fi
+  
+  if [ -z "$IMAGE_NAME" ] || [ "$IMAGE_NAME" == "mysql" ]; then
+    echo "Building image [mysql] ..."
+    docker build --no-cache --tag thetek/mysql:8.0.22 --label thetek_mysql:latest ./.docker/mysql
+    docker image prune --force --filter='label=thetek_mysql:latest'
+    echo ""
   fi
   
   if [ -z "$IMAGE_NAME" ] || [ "$IMAGE_NAME" == "nginx" ]; then

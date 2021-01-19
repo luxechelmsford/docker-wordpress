@@ -45,7 +45,7 @@ apply_shell_expansion() {
 }
 
 
-rebuiltFilesFromTemlates() {
+rebuiltYml() {
   local WEBSITE_NAME="$1"
   local DB_NAME=${WEBSITE_NAME//-/_}
   local WEB_HTTP_PORT=$2
@@ -140,49 +140,8 @@ rebuiltFilesFromTemlates() {
     Exit 1;
   fi
   #
-  #
-  # Now create files from various template files, by expanding the environment variables
-  #
-  # Set the environment variable for mysql password file
-  local HOST_MYSQL_PWD_FILE="${HOST_DOCKER_COMPOSE_DIR}/mysql/secrets/static/${MYSQL_PWD_FILENAME}"
-  #
-  # Set the environment variable for mysql config file
-  local HOST_MYSQL_CNF_FILE="${HOST_DOCKER_COMPOSE_DIR}/mysql/configs/static/${MYSQL_CNF_FILENAME}"
-  #
-  # Generate nginx wordpress conf file
-  local NGINX_WORDPRESS_CNF_FILENAME="${WEBSITE_NAME}-wordpress.conf"
-  local HOST_NGINX_WORDPRESS_CNF_FILE="${HOST_DOCKER_COMPOSE_DIR}/nginx/configs/auto-gen/${NGINX_WORDPRESS_CNF_FILENAME}"
-  printf "%s\n" "$(apply_shell_expansion ${SCRIPT_PATH}/templates/nginx-wordpress.conf.template)" > ${HOST_NGINX_WORDPRESS_CNF_FILE}
-  #
-  # Generate nginx phpmyadmin conf file
-  local NGINX_PHPMYADMIN_CNF_FILENAME="${WEBSITE_NAME}-phpmyadmin.conf"
-  local HOST_NGINX_PHPMYADMIN_CNF_FILE="${HOST_DOCKER_COMPOSE_DIR}/nginx/configs/auto-gen/${NGINX_PHPMYADMIN_CNF_FILENAME}"
-  printf "%s\n" "$(apply_shell_expansion ${SCRIPT_PATH}/templates/nginx-phpmyadmin.conf.template)" > ${HOST_NGINX_PHPMYADMIN_CNF_FILE}
-  #
-  # Set the environment variable for wpbackup dropbox token file
-  local HOST_DROPBOX_TOKEN_FILE="${HOST_DOCKER_COMPOSE_DIR}/wpbackup/secrets/static/${DROPBOX_TOKEN_FILENAME}"
-  #
-  # Set the environment variable for wpbackup gpg password file
-  local HOST_GPG_PASSWORD_FILE="${HOST_DOCKER_COMPOSE_DIR}/wpbackup/secrets/static/${GPG_PASSWORD_FILENAME}"
-  #
-  # Set the environment variable for webdrive certificate file
-  if [ -z "${WEBDRIVE_CER_FILENAME}" ]; then WEBDRIVE_CER_FILENAME="webdrive-cer.cer"; fi
-  local HOST_WEBDRIVE_CER_FILE="${HOST_DOCKER_COMPOSE_DIR}/webdrive/secrets/static/${WEBDRIVE_CER_FILENAME}"
-  #
-  # Generate webdrive davfs2 secrets file
-  local WEBDRIVE_DFS_FILENAME="${WEBSITE_NAME}-secrets"
-  local HOST_WEBDRIVE_DFS_FILE="${HOST_DOCKER_COMPOSE_DIR}/webdrive/secrets/auto-gen/${WEBDRIVE_DFS_FILENAME}"
-  printf "%s\n" "$(apply_shell_expansion ${SCRIPT_PATH}/templates/webdrive-secrets.template)" > ${HOST_WEBDRIVE_DFS_FILE}
-  #
-  # Generate webdrive unison prf file
-  local WEBDRIVE_PRF_FILENAME="${WEBSITE_NAME}-default.prf"
-  local HOST_WEBDRIVE_PRF_FILE="${HOST_DOCKER_COMPOSE_DIR}/webdrive/configs/auto-gen/${WEBDRIVE_PRF_FILENAME}"
-  printf "%s\n" "$(apply_shell_expansion ${SCRIPT_PATH}/templates/webdrive-default.prf.template)" > ${HOST_WEBDRIVE_PRF_FILE}
-  #
-  #
-  #
   # Generate docker-compose file
-  printf "%s\n" "$(apply_shell_expansion ${SCRIPT_PATH}/templates/docker-compose-template.yml)" > ${ROOT_DIR}/docker-compose-${WEBSITE_NAME}.yml
+  printf "%s\n" "$(apply_shell_expansion ${SCRIPT_PATH}/docker-compose-template.yml)" > ${ROOT_DIR}/docker-compose-${WEBSITE_NAME}.yml
 }
 
 
@@ -216,7 +175,7 @@ rebuildYml() {
       exit 1;
     fi
     echo "  Building ${ARRAY[0]}: ${ARRAY[1]}, ${ARRAY[2]}, ${ARRAY[3]}, ${ARRAY[4]}"
-    rebuiltFilesFromTemlates "${ARRAY[0]}" "${ARRAY[1]}" "${ARRAY[2]}" "${ARRAY[3]}" "${ARRAY[4]}"
+    rebuiltYml "${ARRAY[0]}" "${ARRAY[1]}" "${ARRAY[2]}" "${ARRAY[3]}" "${ARRAY[4]}"
   done
   echo "All sites built successfully ..."
   echo ""
@@ -240,7 +199,7 @@ addSite() {
   if [ ! -z "$(tail -c 1 "${SCRIPT_FILE}.txt")" ]; then echo "" >> "${SCRIPT_FILE}.txt"; fi
   echo "${WEBSITE_NAME}|${WEB_HTTP_PORT}|${WEB_HTTPS_PORT}|${WEB_SERVER_URL}|${ADD_SERVER_URL}" >> "${SCRIPT_FILE}.txt"
   
-  rebuiltFilesFromTemlates "${WEBSITE_NAME}" "${WEB_HTTP_PORT}" "${WEB_HTTPS_PORT}" "${WEB_SERVER_URL}" "${ADD_SERVER_URL}"
+  rebuiltYml "${WEBSITE_NAME}" "${WEB_HTTP_PORT}" "${WEB_HTTPS_PORT}" "${WEB_SERVER_URL}" "${ADD_SERVER_URL}"
 
   echo "Site [${WEBSITE_NAME}] with Values:"
   echo "    HTTP Port:              ${WEB_HTTP_PORT}"
@@ -317,7 +276,7 @@ editSite() {
   ESCAPED_NEW_LINE=$(printf '%s\n' "$NEW_LINE" | sed -e 's/[\/&]/\\&/g')
   sed "${LINE_NO}s/.*/${ESCAPED_NEW_LINE}/" ${SCRIPT_FILE}.txt > ${SCRIPT_FILE}.txt.tmp && mv ${SCRIPT_FILE}.txt.tmp ${SCRIPT_FILE}.txt 
 
-  rebuiltFilesFromTemlates "${WEBSITE_NAME}" "${WEB_HTTP_PORT}" "${WEB_HTTPS_PORT}" "${WEB_SERVER_URL}" "${ADD_SERVER_URL}"
+  rebuiltYml "${WEBSITE_NAME}" "${WEB_HTTP_PORT}" "${WEB_HTTPS_PORT}" "${WEB_SERVER_URL}" "${ADD_SERVER_URL}"
 
   echo "Site [${WEBSITE_NAME}] edited with values:"
   echo "    HTTP Port:              ${WEB_HTTP_PORT}"

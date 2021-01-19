@@ -15,7 +15,7 @@ services:
   # MySQL Service
   mysql:
     container_name:                  demo-mysql
-    image:                           mysql:8.0.22
+    image:                           thetek/mysql:8.0.22
     restart:                         always
     working_dir:                     /var/lib/mysql
     environment:
@@ -23,19 +23,20 @@ services:
       MYSQL_HOST:                    mysql
       MYSQL_DATABASE:                demo
       MYSQL_USER:                    demo
-      MYSQL_PASSWORD_FILE:           /run/secrets/demo-mysqldb-pwd.txt
-      MYSQL_ALLOW_EMPTY_PASSWORD:    "yes"
+      MYSQL_ROOT_PASSWORD:           szgjzFFG556FF7504
+      MYSQL_PASSWORD:                fdgshadfg53476cvgda
+      #MYSQL_ALLOW_EMPTY_PASSWORD:   "yes"
     volumes:
       - mysql-data-volume:/var/lib/mysql
       - wpbackup-data-volume:/var/backups/demo
-    secrets:
-      - source:                      mysql-pwd-key
-        target:                      /run/secrets/demo-mysqldb-pwd.txt
-    #configs:
-      - source:                      mysql-cnf-key
-        target:                      /etc/mysql/conf.d/my.cnf
+#    secrets:
+#      - source:                      mysql-pwd-key
+#        target:                      /run/secrets/
+#   #configs:
+#      - source:                      mysql-cnf-key
+#        target:                      /etc/mysql/conf.d/my.cnf
     cap_add:
-      - SYS_NICE  # CAP_SYS_NICE
+      - SYS_NICE                     # CAP_SYS_NICE
 
   # Wordpress Service
   wordpress:
@@ -47,7 +48,7 @@ services:
       WORDPRESS_DB_HOST:             mysql
       WORDPRESS_DB_NAME:             demo
       WORDPRESS_DB_USER:             demo
-      WORDPRESS_DB_PASSWORD_FILE:    /run/secrets/demo-mysqldb-pwd.txt
+      WORDPRESS_DB_PASSWORD:         fdgshadfg53476cvgda
       WORDPRESS_TABLE_PREFIX:        wp_
       WORDPRESS_CONFIG_EXTRA: |
         define( 'WP_HOME', 'www.example.com' );
@@ -58,9 +59,9 @@ services:
       - mysql
     links:
       - mysql
-    secrets:
-      - source:                      mysql-pwd-key
-        target:                      /run/secrets/demo-mysqldb-pwd.txt
+#    secrets:
+#      - source:                      mysql-pwd-key
+#        target:                      /run/secrets/
 
   # PhpMyAdmin Service
   phpmyadmin:
@@ -82,25 +83,23 @@ services:
     restart:                         always
     working_dir:                     /etc/nginx
     environment:
-      LETSENCRYPT_ADMIN_EMAIL:       "admin@example.com"
-      LETSENCRYPT_MODE:              "disabled"
+      LETSENCRYPT_ADMIN_EMAIL:       admin@example.com
+      LETSENCRYPT_MODE:              disabled
       LETSENCRYPT_LOG_DIR:           /var/log/letsencrypt
       NGINX_LOG_DIR:                 /var/log/nginx
       WORDPRESS_ALL_SERVER_URLS:     "www.example.com example.com"
       PHPMYADMIN_ALL_SERVER_URLS:    "phpmyadmin.example.com"
-      WORDPRESS_CONF_FILE:           /run/secrets/demo-wordpress.conf
-      PHPMYADMIN_CONF_FILE:          /run/secrets/demo-phpmyadmin.conf
     volumes:
       - log-data-volume:/var/log
       - nginx-cert-volume:/etc/letsencrypt
       - wordpress-data-volume:/var/www/html:ro,delegated
       - phpmyadmin-data-volume:/var/www/phpmyadmin:ro,delegated
-    secrets:
-    #configs:
-      - source:                      nginx-wordpress-cnf-key
-        target:                      /run/secrets/demo-wordpress.conf
-      - source:                      nginx-phpmyadmin-cnf-key
-        target:                      /run/secrets/demo-phpmyadmin.conf
+#    secrets:
+#   #configs:
+#      - source:                      nginx-wordpress-cnf-key
+#        target:                      /run/secrets/
+#      - source:                      nginx-phpmyadmin-cnf-key
+#        target:                      /run/secrets/
     depends_on:
       - wordpress
       - phpmyadmin
@@ -116,18 +115,21 @@ services:
     working_dir:                     /var/backups/demo
     environment:
       WPBACKUP_ENABLED:              "yes"
-      WPBACKUP_WEBSITE:              "demo"
+      WPBACKUP_WEBSITE:              demo
       WPBACKUP_DB_HOST:              mysql
       WPBACKUP_DB_NAME:              demo
       WPBACKUP_DB_USER:              demo
-      WPBACKUP_DB_PASSWORD_FILE:     /run/secrets/demo-mysqldb-pwd.txt
+      WPBACKUP_DB_PASSWORD:          fdgshadfg53476cvgda
+      WPBACKUP_ROOT_DB_PASSWORD:     szgjzFFG556FF7504
       WPBACKUP_WPCONTENT_DIR:        /var/www/html/wp-content
-      WPBACKUP_BACKUP_DIR:           /var/backups/demo
+      WPBACKUP_ROOT_DIR:             /var/backups/demo
       WPBACKUP_LOG_DIR:              /var/log/wpbackup
       WPBACKUP_RESTORE_KEY:          restore-me.txt
       WPBACKUP_WPCUSTOM_KEY:         wpcustom.txt
-      WPBACKUP_DROPBOX_TOKEN_FILE:   /run/secrets/dropbox-token.txt
-      WPBACKUP_GPG_PASSWORD_FILE:    /run/secrets/gpg-password.txt
+      WPBACKUP_DROPBOX_TOKEN:        
+      WPBACKUP_GPG_PASSWORD:         
+      MYSQL_USER_CNF_FILE:           /etc/mysql/conf.d/my.cnf
+      MYSQL_ROOT_CNF_FILE:           /etc/mysql/root.cnf
       WP_CLEAN_DAILY_DAYS:           30
       WP_CLEAN_WEEKLY_DAYS:          180
       WP_CLEAN_MONTHLY_DAYS:         365
@@ -137,13 +139,13 @@ services:
       - wpbackup-data-volume:/var/backups/demo
     depends_on:
       - mysql
-    secrets:
-      - source:                      mysql-pwd-key
-        target:                      /run/secrets/demo-mysqldb-pwd.txt
-      - source:                      dropbox-token-key
-        target:                      /run/secrets/dropbox-token.txt
-      - source:                      gpg-password-key
-        target:                      /run/secrets/gpg-password.txt
+#    secrets:
+#      - source:                      mysql-pwd-key
+#        target:                      /run/secrets/
+#      - source:                      dropbox-token-key
+#        target:                      /run/secrets/
+#      - source:                      gpg-password-key
+#        target:                      /run/secrets/
   
   # Webdrive service
   webdrive:
@@ -153,49 +155,51 @@ services:
     working_dir:                     /mnt/webdrive/demo
     environment:
       WEBDRIVE_URL:                  https://webdrive/example.com:5001/share/
-      WEBDRIVE_REMOTE_PATH:          "demo"
-      WEBDRIVE_SECRETS_FILE:         /run/secrets/demo-secrets
+      WEBDRIVE_UID:                  webdavuid
+      WEBDRIVE_PWD:                  webdavpwd
+      WEBDRIVE_ROOT_DIR:             /mnt/webdrive/demo
+      WPBACKUP_ROOT_DIR:             /var/backups/demo
     volumes:
       - wpbackup-data-volume:/var/backups/demo:cached
       - webdrive-data-volume:/mnt/webdrive/demo:delegated
-    secrets:
-      - source:                      webdrive-cer-key
-        target:                      /etc/davfs2/certs/demo-webdrive-cer.cer
-      - source:                      webdrive-dfs-key            
-        target:                      /run/secrets/demo-secrets
-    #configs:
-      - source:                      webdrive-prf-key            
-        target:                      /root/.unison/default.prf
+#    secrets:
+#      - source:                      webdrive-cer-key
+#        target:                      /etc/davfs2/certs/demo-webdrive-cer.cer
+#      - source:                      webdrive-dfs-key            
+#        target:                      /run/secrets/demo-secrets
+#    #configs:
+#      - source:                      webdrive-prf-key            
+#        target:                      /root/.unison/default.prf
     devices:
       - /dev/fuse
     cap_add:
       - SYS_ADMIN
     privileged: true
 
-# Secrets
-secrets:
-  mysql-pwd-key:
-    file:                            ./.docker-compose/mysql/secrets/static/demo-mysqldb-pwd.txt
-  dropbox-token-key:
-    file:                            ./.docker-compose/wpbackup/secrets/static/dropbox-token.txt
-  gpg-password-key:
-    file:                            ./.docker-compose/wpbackup/secrets/static/gpg-password.txt
-  webdrive-cer-key:
-    file:                            ./.docker-compose/webdrive/secrets/static/demo-webdrive-cer.cer
-  webdrive-dfs-key:
-    file:                            ./.docker-compose/webdrive/secrets/auto-gen/demo-secrets
-#
-# Configs aren't working so sending all config as secrets
-# Configs
-#configs:
-  mysql-cnf-key:
-    file:                            ./.docker-compose/mysql/configs/static/my.cnf
-  nginx-wordpress-cnf-key:
-    file:                            ./.docker-compose/nginx/configs/auto-gen/demo-wordpress.conf
-  nginx-phpmyadmin-cnf-key:
-    file:                            ./.docker-compose/nginx/configs/auto-gen/demo-phpmyadmin.conf
-  webdrive-prf-key:
-    file:                            ./.docker-compose/webdrive/configs/auto-gen/demo-default.prf
+## Secrets
+#secrets:
+#  mysql-pwd-key:
+#    file:                            
+#  dropbox-token-key:
+#    file:                            
+#  gpg-password-key:
+#    file:                            
+#  webdrive-cer-key:
+#    file:                            
+#  webdrive-dfs-key:
+#    file:                            
+##
+## Configs aren't working so sending all config as secrets
+## Configs
+##configs:
+#  mysql-cnf-key:
+#    file:                            
+#  nginx-wordpress-cnf-key:
+#    file:                            
+#  nginx-phpmyadmin-cnf-key:
+#    file:                            
+#  webdrive-prf-key:
+#    file:                            
 
 
 # Volumes

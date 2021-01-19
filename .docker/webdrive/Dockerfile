@@ -10,8 +10,7 @@ RUN apt-get update \
   && apt-get clean \
   && rm -rf /tmp/* /var/lib/apt/lists/* /var/tmp/*
 
-COPY docker-entrypoint.sh /bin/entrypoint.sh
+COPY ./docker-entrypoint.sh /bin/entrypoint.sh
+COPY ./default.prf /root/.unison/default.prf
 
-ENTRYPOINT [ "entrypoint.sh" ]
-
-#CMD cron -f && bash
+ENTRYPOINT [ "/bin/entrypoint.sh" ]

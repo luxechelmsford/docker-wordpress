@@ -1,7 +1,3 @@
-# Roots of the synchronization
-root = /var/backups/${WEBDRIVE_REMOTE_PATH}
-root = /mnt/webdrive/${WEBDRIVE_REMOTE_PATH}
-
 # Log actions
 log = true
 

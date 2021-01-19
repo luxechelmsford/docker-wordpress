@@ -4,7 +4,7 @@ fastcgi_cache_path /var/www/cache levels=1:2 keys_zone=wordpress:100m inactive=6
 server {
   listen        80 default;
   listen        [::]:80 ipv6only=on default;
-  server_name   www.example.com example.com;
+  server_name   ${WORDPRESS_ALL_SERVER_URLS};
   root          /var/www/html;
   index         index.php;
 

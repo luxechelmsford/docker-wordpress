@@ -4,55 +4,51 @@
 echo "*******************************************************************"
 echo "[$(date +"%Y-%m-%d-%H%M%S")] Entered wpbackup entrypoint script ..."
 
-if [ -z "${WPBACKUP_WEBSITE}" ];            then echo "Error: WPBACKUP_WEBSITE not set";            echo "Finished: FAILURE"; exit 1; fi
-if [ -z "${WPBACKUP_DB_HOST}" ];            then echo "Error: WPBACKUP_DB_HOST not set";            echo "Finished: FAILURE"; exit 1; fi
-if [ -z "${WPBACKUP_DB_NAME}" ];            then echo "Error: WPBACKUP_DB_NAME not set";            echo "Finished: FAILURE"; exit 1; fi
-if [ -z "${WPBACKUP_DB_USER}" ];            then echo "Error: WPBACKUP_DB_USER not set";            echo "Finished: FAILURE"; exit 1; fi
-if [ -z "${WPBACKUP_DB_PASSWORD_FILE}" ];   then echo "Error: WPBACKUP_DB_PASSWORD_FILE not set";   echo "Finished: FAILURE"; exit 1; fi
-if [ -z "${WPBACKUP_WPCONTENT_DIR}" ];      then echo "Error: WPBACKUP_WPCONTENT_DIR not set";      echo "Finished: FAILURE"; exit 1; fi
-if [ -z "${WPBACKUP_BACKUP_DIR}" ];         then echo "Error: WPBACKUP_BACKUP_DIR not set";         echo "Finished: FAILURE"; exit 1; fi
-if [ -z "${WPBACKUP_LOG_DIR}" ];            then echo "Error: WPBACKUP_LOG_DIR not set";            echo "Finished: FAILURE"; exit 1; fi
-#if [ -z "${WPBACKUP_ENABLED}" ];           then echo "Error: WPBACKUP_ENABLED not set";            echo "Finished: FAILURE"; exit 1; fi
-#if [ -z "${WPBACKUP_RESTORE_KEY}" ];       then echo "Error: WPBACKUP_RESTORE_KEY not set";        echo "Finished: FAILURE"; exit 1; fi
-#if [ -z "${WPBACKUP_WPCUSTOM_FILENAME}" ]; then echo "Error: WPBACKUP_WPCUSTOM_FILENAME not set";  echo "Finished: FAILURE"; exit 1; fi
-#if [ -z "${WPBACKUP_DROPBOX_TOKEN_FILE}" ];then echo "Error: WPBACKUP_DROPBOX_TOKEN_FILE not set"; echo "Finished: FAILURE"; exit 1; fi
-#if [ -z "${WPBACKUP_GPG_PASSWORD_FILE}" ]; then echo "Error: WPBACKUP_GPG_PASSWORD_FILE not set";  echo "Finished: FAILURE"; exit 1; fi
-#if [ -z "${WP_CLEAN_DAILY_DAYS}" ];        then echo "Error: WP_CLEAN_DAILY_DAYS not set";         echo "Finished: FAILURE"; exit 1; fi
-#if [ -z "${WP_CLEAN_WEEKLY_DAYS}" ];       then echo "Error: WP_CLEAN_WEEKLY_DAYS not set";        echo "Finished: FAILURE"; exit 1; fi
-#if [ -z "${WP_CLEAN_MONTHLY_DAYS}" ];      then echo "Error: WP_CLEAN_MONTHLY_DAYS not set";       echo "Finished: FAILURE"; exit 1; fi
-
-if [ ! -d "${WPBACKUP_BACKUP_DIR}" ]; then mkdir -p "${WPBACKUP_BACKUP_DIR}"; fi
+if [ -z "${WPBACKUP_WEBSITE}" ];          then echo "Error: WPBACKUP_WEBSITE not set";          echo "Finished: FAILURE"; exit 1; fi
+if [ -z "${WPBACKUP_DB_HOST}" ];          then echo "Error: WPBACKUP_DB_HOST not set";          echo "Finished: FAILURE"; exit 1; fi
+if [ -z "${WPBACKUP_DB_NAME}" ];          then echo "Error: WPBACKUP_DB_NAME not set";          echo "Finished: FAILURE"; exit 1; fi
+if [ -z "${WPBACKUP_DB_USER}" ];          then echo "Error: WPBACKUP_DB_USER not set";          echo "Finished: FAILURE"; exit 1; fi
+if [ -z "${WPBACKUP_DB_PASSWORD}" ];      then echo "Error: WPBACKUP_DB_PASSWORD not set";      echo "Finished: FAILURE"; exit 1; fi
+if [ -z "${WPBACKUP_ROOT_DB_PASSWORD}" ]; then echo "Error: WPBACKUP_ROOT_DB_PASSWORD not set"; echo "Finished: FAILURE"; exit 1; fi
+if [ -z "${WPBACKUP_WPCONTENT_DIR}" ];    then echo "Error: WPBACKUP_WPCONTENT_DIR not set";    echo "Finished: FAILURE"; exit 1; fi
+if [ -z "${WPBACKUP_ROOT_DIR}" ];         then echo "Error: WPBACKUP_ROOT_DIR not set";         echo "Finished: FAILURE"; exit 1; fi
+if [ -z "${WPBACKUP_LOG_DIR}" ];          then echo "Error: WPBACKUP_LOG_DIR not set";          echo "Finished: FAILURE"; exit 1; fi
+if [ -z "${MYSQL_USER_CNF_FILE}" ];       then echo "Error: MYSQL_USER_CNF_FILE not set";       echo "Finished: FAILURE"; exit 1; fi
+if [ -z "${MYSQL_ROOT_CNF_FILE}" ];       then echo "Error: MYSQL_ROOT_CNF_FILE not set";       echo "Finished: FAILURE"; exit 1; fi
+ 
+if [ ! -d "${WPBACKUP_ROOT_DIR}" ]; then mkdir -p "${WPBACKUP_ROOT_DIR}"; fi
 if [ ! -d "${WPBACKUP_LOG_DIR}" ]; then mkdir -p "${WPBACKUP_LOG_DIR}"; fi
 
 # First create the conf file for backup job to pick up database username password
-if [ ! -f ~/.my.cnf ]
+# Do not include double quotes around ~/.my.cnf, it wont' expand 
+if [ ! -f "${MYSQL_USER_CNF_FILE}" ]
 then
   echo "Creating Mysql config file ...";
-  if [ -z "${WPBACKUP_DB_HOST}" ]
-  then
-    echo "Failed to create Mysql config file - WPBACKUP_DB_HOST not setup.";
-  elif [ -z "${WPBACKUP_DB_USER}" ]
-  then
-    echo "Failed to create Mysql config file - WPBACKUP_DB_USER not setup.";
-  elif [ -z "${WPBACKUP_DB_PASSWORD_FILE}" ]
-  then
-    echo "Failed to create Mysql config file - WPBACKUP_DB_PASSWORD_FILE not setup.";
-  else
-    WPBACKUP_DB_PASSWORD=$(<"${WPBACKUP_DB_PASSWORD_FILE}");
-    # Do not include double quotes around ~/.my.cnf, it wont' expand 
-    cat <<EOF > ~/.my.cnf
+  cat <<EOF > "${MYSQL_USER_CNF_FILE}"
 [mysql]
 host=${WPBACKUP_DB_HOST}
 user=${WPBACKUP_DB_USER}
 password=${WPBACKUP_DB_PASSWORD}
+[mysqld]
+collation-server=utf8mb4_unicode_ci
+character-set-server=utf8mb4
 [mysqldump]
 host=${WPBACKUP_DB_HOST}
 user=${WPBACKUP_DB_USER}
 password=${WPBACKUP_DB_PASSWORD}
 EOF
     
-    echo "Mysql config file created successfully.";
-  fi
+  chmod 644 "${MYSQL_USER_CNF_FILE}"
+  echo "Creating Mysql config file ...";
+  cat <<EOF > "${MYSQL_ROOT_CNF_FILE}"
+[mysql]
+host=${WPBACKUP_DB_HOST}
+user=root
+password=${WPBACKUP_ROOT_DB_PASSWORD}
+EOF
+
+  chmod 644 "${MYSQL_ROOT_CNF_FILE}"
+  echo "Mysql config file created successfully.";
 fi
 
 
@@ -63,17 +59,27 @@ then
   printenv | sed 's/^\(.*\)$/export \1/g' >  /etc/wpbackup-envs
 
   # Check if we need to restore from a restore file
+  # First we check if the mysql service si up and running
+  RETRY_COUNTER=0
+  while ! mysql "--defaults-extra-file=${MYSQL_USER_CNF_FILE}" "${WPBACKUP_DB_NAME}" -e ";" ; do
+    echo "Unable to connect to mysql database. It may not have been staretd as yet"
+    echo "Lets try again in some time ..."
+    RETRY_COUNTER=$((RETRY_COUNTER+1))
+    if [ "${RETRY_COUNTER}" == "20" ]; then break; fi
+    sleep 60 # sleep for 60 seconds
+  done
+
   # We can only restore on an empty database lets check that
   # Host and password information is stored in config so there is no need to pass here
   echo "Checking if we need to restore from a previous backup ..."
-  DB_TABLES=$(echo "show tables" | mysql -u "${WPBACKUP_DB_USER}" "${WPBACKUP_DB_NAME}")
+  DB_TABLES=$(echo "show tables" | mysql "--defaults-extra-file=${MYSQL_USER_CNF_FILE}" "${WPBACKUP_DB_NAME}")
   if  [ -n "${DB_TABLES}" ]
   then
     echo "Database is not empty - restore will be skipped"
     echo "If restore is required, please delete the database"
   else
     # Lets check if the restore key is deifned and the file actually exists
-    RESTORE_KEY_FILE="${WPBACKUP_BACKUP_DIR}/${WPBACKUP_RESTORE_KEY}"
+    RESTORE_KEY_FILE="${WPBACKUP_ROOT_DIR}/${WPBACKUP_RESTORE_KEY}"
     if [ -z "${WPBACKUP_RESTORE_KEY}" ]
     then
       echo "WPBACKUP_RESTORE_KEY is not defined - Restore will be skipped"
@@ -87,16 +93,16 @@ then
           echo "Restore key file does not point to any restore file - Restore will be skipped"
           break;
         fi
-        RESTORE_FILE="${WPBACKUP_BACKUP_DIR}/${RESTORE_FILENAME}"
+        RESTORE_FILE="${WPBACKUP_ROOT_DIR}/${RESTORE_FILENAME}"
         if [ -f "${RESTORE_FILE}" ]
         then
           echo "Restore file [${RESTORE_FILE}] found."
           # Lets check the wpcustom file
-          WPCUSTOM_KEY_FILE="${WPBACKUP_BACKUP_DIR}/${WPBACKUP_WPCUSTOM_KEY}"
+          WPCUSTOM_KEY_FILE="${WPBACKUP_ROOT_DIR}/${WPBACKUP_WPCUSTOM_KEY}"
           if [ -n "${WPBACKUP_WPCUSTOM_KEY}" ] && [ -f "${WPCUSTOM_KEY_FILE}" ]
           then
             WPCUSTOM_FILENAME="$(<"${WPCUSTOM_KEY_FILE}")"
-            WPCUSTOM_FILE="${WPBACKUP_BACKUP_DIR}/${WPCUSTOM_FILENAME}"
+            WPCUSTOM_FILE="${WPBACKUP_ROOT_DIR}/${WPCUSTOM_FILENAME}"
             if [ -n "${WPCUSTOM_FILENAME}" ] && [ -f "${WPCUSTOM_FILE}" ]
             then
               echo "wpcustom file [${WPCUSTOM_FILE}] found."
