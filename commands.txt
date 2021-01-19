@@ -1,0 +1,9 @@
+docker stop tek-live-mysql tek-live-webdrive tek-live-wpbackup tek-live-wordpress tek-livephpmyadmin tek-live-nginx
+docker rm tek-live-mysql tek-live-webdrive tek-live-wpbackup tek-live-wordpress tek-livephpmyadmin tek-live-nginx
+docker volume rm  tek-live_log-data-volume tek-live_mysql-data-volume tek-live_nginx-cert-volume tek-live_phpmyadmin-data-volume tek-live_webdrive-data-volume tek-live_wordpress-data-volume tek-live_wpbackup-data-volume
+
+docker stop tek-live-webdrive tek-live-wpbackup 
+docker rm tek-live-webdrive tek-live-wpbackup 
+docker volume rm tek-live_webdrive-data-volume tek-live_wpbackup-data-volume
+
+docker stop tek-live-wpbackup

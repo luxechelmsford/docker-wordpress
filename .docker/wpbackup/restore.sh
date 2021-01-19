@@ -74,7 +74,7 @@ FLUSH PRIVILEGES;
 EXIT;
 EOF
 
-      mysql "--defaults-extra-file=${MYSQL_ROOT_CNF_FILE}" -u root < /tmp/recreatedb.sql
+      mysql "--defaults-extra-file=${MYSQL_ROOT_CNF_FILE}" < /tmp/recreatedb.sql
       DB_TABLES=$(echo "show tables" | mysql "--defaults-extra-file=${MYSQL_USER_CNF_FILE}" "${WPBACKUP_DB_NAME}")
       if  [ -n "${DB_TABLES}" ]
       then

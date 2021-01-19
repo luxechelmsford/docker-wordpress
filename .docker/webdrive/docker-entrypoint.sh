@@ -32,15 +32,15 @@ then
   echo "Skipping the mounting of the web drive. Webdrive credentials not found in the secrets file"
 else
   # Check if the webdrive is mounted
-  DRIVE_TYPE=$(stat --file-system --format=%T "${WPBACKUP_ROOT_DIR%/*}");
+  DRIVE_TYPE=$(stat --file-system --format=%T "${WEBDRIVE_ROOT_DIR%/*}");
   if [ "${DRIVE_TYPE}" == "fuseblk" ]
   then
     echo "Webdrive has already been mounted"
   else
-    # Mount the webdrive please note ${WPBACKUP_ROOT_DIR%/*} would remove the top level subdir
+    # Mount the webdrive please note ${WEBDRIVE_ROOT_DIR%/*} would remove the top level subdir
     echo "Mounting the webdrive ..."
-    echo "y" | mount -t davfs "$WEBDRIVE_URL" "${WPBACKUP_ROOT_DIR%/*}" -o uid=0,gid=users,dir_mode=755,file_mode=755
-    DRIVE_TYPE=$(stat --file-system --format=%T "${WPBACKUP_ROOT_DIR%/*}");
+    echo "y" | mount -t davfs "$WEBDRIVE_URL" "${WEBDRIVE_ROOT_DIR%/*}" -o uid=0,gid=users,dir_mode=755,file_mode=755
+    DRIVE_TYPE=$(stat --file-system --format=%T "${WEBDRIVE_ROOT_DIR%/*}");
     if [ "${DRIVE_TYPE}" == "fuseblk" ]
     then
       echo "Webdrive mounted successfully"
@@ -54,16 +54,18 @@ else
         mkdir -p "${WEBDRIVE_ROOT_DIR}"
         echo "Remote directory [${WEBDRIVE_ROOT_DIR}] created successfully"  
       fi
-      if [ ! -d "${WPBACKUP_ROOT_DIR}" ]
-      then
-        mkdir -p "${WPBACKUP_ROOT_DIR}"
-        echo "Remote directory [${WPBACKUP_ROOT_DIR}] created successfully"
-      fi
     else
       echo "Failed to mount the webdrive"
     fi
   fi
 fi
+
+if [ ! -d "${WPBACKUP_ROOT_DIR}" ]
+then
+  mkdir -p "${WPBACKUP_ROOT_DIR}"
+  echo "Remote directory [${WPBACKUP_ROOT_DIR}] created successfully"
+fi
+
 
 # Start the endless sync process
 echo "Starting unison process ..."
