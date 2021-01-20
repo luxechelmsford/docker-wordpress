@@ -96,8 +96,6 @@ rebuiltYml() {
   local MYSQL_USER=${DB_NAME}
   local WORDPRESS_TABLE_PREFIX="wp_"
   local MYSQL_CNF_FILENAME="my.cnf"
-  local WORDPRESS_HOME=${WEB_MAIN_SERVER_URL}
-  local WORDPRESS_SITEURL=${WEB_MAIN_SERVER_URL}
   #
   # Set the wordpress environment variables
   local WORDPRESS_ROOT_DIR="/var/www/html"
@@ -138,6 +136,16 @@ rebuiltYml() {
     echo "    [${SCRIPT_PATH}/envs/all-site.env]"
     echo "    [${SCRIPT_PATH}/envs/${WEBSITE_NAME}-site.env]"
     Exit 1;
+  fi
+  #
+  # Now set the site and home url based on if we are going for ssl
+  if [ "${LETSENCRYPT_MODE}" == "disabled" ]
+  then
+    local WORDPRESS_HOME="http://${WEB_MAIN_SERVER_URL}"
+    local WORDPRESS_SITEURL="http://${WEB_MAIN_SERVER_URL}"
+  else
+    local WORDPRESS_HOME="https://${WEB_MAIN_SERVER_URL}"
+    local WORDPRESS_SITEURL="https://${WEB_MAIN_SERVER_URL}"
   fi
   #
   # Generate docker-compose file

@@ -2,7 +2,8 @@
 
 # This script creates a compressed backup archive of the wordpress wp-content folder and nysql dmp
 
-echo "[$(date +"%Y-%m-%d-%H%M%S")] Staritng backup task ..."
+echo "*******************************************************************"
+echo "[$(date +"%Y-%m-%d-%H%M%S")] Entered wpbackup backup script ..."
 
 if [ -z "${WPBACKUP_WEBSITE}" ];       then echo "Error: WPBACKUP_WEBSITE not set";                echo "Finished: FAILURE"; exit 1; fi
 if [ -z "${WPBACKUP_DB_NAME}" ];       then echo "Error: WPBACKUP_DB_NAME not set";                echo "Finished: FAILURE"; exit 1; fi
@@ -96,6 +97,7 @@ then
   find "${WPBACKUP_ROOT_DIR}" -name "${WPBACKUP_WEBSITE}-monthly*"  -type f -mtime "+${WP_CLEAN_MONTHLY_DAYS}" -delete
 fi
 
-echo "[$(date +"%Y-%m-%d-%H%M%S")] Finishing backup task ..."
+echo "[$(date +"%Y-%m-%d-%H%M%S")] Exiting wpbackup backup script ..."
+echo "*******************************************************************"
 
 exit 0;

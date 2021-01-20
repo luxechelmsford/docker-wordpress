@@ -1,7 +1,8 @@
 #!/bin/bash
 set -e
 
-echo "[$(date +"%Y-%m-%d-%H%M%S")] Staritng restore task ..."
+echo "*******************************************************************"
+echo "[$(date +"%Y-%m-%d-%H%M%S")] Entered wpbackup restore script ..."
 
 if [ -z "${WPBACKUP_WEBSITE}" ];       then echo "Error: WPBACKUP_WEBSITE not set";                echo "Finished: FAILURE"; exit 1; fi
 if [ -z "${WPBACKUP_DB_NAME}" ];       then echo "Error: WPBACKUP_DB_NAME not set";                echo "Finished: FAILURE"; exit 1; fi
@@ -36,7 +37,7 @@ fi
 RECREATE=""
 if [ "$2" == "-r" ] || [ "$2" == "--recreate" ]
 then
-  RECREATE="yes"
+  RECREATE="Yes"
 else
   WPCUSTOM_FILE=${2}
   if [ -n "${WPCUSTOM_FILE}" ]
@@ -50,9 +51,14 @@ else
   fi
   if [ "$3" == "-r" ] || [ "$3" == "--recreate" ]
   then
-   RECREATE="yes"
+   RECREATE="Yes"
   fi
 fi
+
+echo "Restoring from a Wordpress backup with following options"
+echo "    Restore File:  [${RESTORE_FILE}]"
+echo "    Wpcustom File: [${WPCUSTOM_FILE:-"None"}]"
+echo "    Recreate DB:   [${RECREATE:-"No"}]"
 
 # Now check if the database is empty
 # Host and password information is stored in config so there is no need to pass here
@@ -61,7 +67,7 @@ if  [ -n "${DB_TABLES}" ]
 then
   if [ -n "${RECREATE}" ]
   then
-    read -p "Are you sure? " -n 1 -r
+    read -p "The existing databsae will be dropped before recreating? Are you sure (Y/N)? " -n 1 -r
     echo    # (optional) move to a new line
     if [[ $REPLY =~ ^[Yy]$ ]]
     then
@@ -71,14 +77,13 @@ DROP DATABASE ${WPBACKUP_DB_NAME};
 CREATE DATABASE ${WPBACKUP_DB_NAME};
 GRANT ALL PRIVILEGES ON ${WPBACKUP_DB_NAME}.* TO '${WPBACKUP_DB_USER}'@'%';
 FLUSH PRIVILEGES;
-EXIT;
 EOF
 
       mysql "--defaults-extra-file=${MYSQL_ROOT_CNF_FILE}" < /tmp/recreatedb.sql
       DB_TABLES=$(echo "show tables" | mysql "--defaults-extra-file=${MYSQL_USER_CNF_FILE}" "${WPBACKUP_DB_NAME}")
       if  [ -n "${DB_TABLES}" ]
       then
-        echo "Failed to restore as databse couldnt be recreated"
+        echo "Failed to restore as database couldnt be recreated"
         echo "Finished: FAILURE";
         exit 1;
       else
@@ -97,7 +102,7 @@ EOF
   fi
 fi
 
-# untar the achhive
+# Set temp dir
 TEMP_DIR="/tmp"
 
 # Make sure the name below matches with the backup.sh script
@@ -105,9 +110,7 @@ echo "Removing any previous restore folder ..."
 rm -rf "${TEMP_DIR}/${WPBACKUP_WEBSITE}-backup"
 
 echo "Uncompressing the backup tar ..."
-echo "to be deleted ${RESTORE_FILE}"
-cd "${TEMP_DIR}"
-sudo tar --same-owner -xpvzf "${RESTORE_FILE}" 
+sudo tar --same-owner -xpzf "${RESTORE_FILE}" --directory "${TEMP_DIR}/"
 
 # Check we have the right foler structure
 WPSRC_DIR=""
@@ -132,11 +135,11 @@ then
 fi
 
 echo "Deleting existing wp-content directory ..."
-rm -vrf "${WPBACKUP_WPCONTENT_DIR}"
+rm -rf "${WPBACKUP_WPCONTENT_DIR}"
 
 # Make sure the name below matches with the backup.sh script
 echo "Copying the new wp-content folder ..."
-mv -vf "${WPSRC_DIR}" "${WPBACKUP_WPCONTENT_DIR}"
+mv -f "${WPSRC_DIR}" "${WPBACKUP_WPCONTENT_DIR}"
 
 echo "Fixing any file permissions ..."
 find "${WPBACKUP_WPCONTENT_DIR}" -exec chown "www-data:www-data" {} \;
@@ -145,16 +148,23 @@ find "${WPBACKUP_WPCONTENT_DIR}" -type d -exec chmod 775 {} \;
 find "${WPBACKUP_WPCONTENT_DIR}" -type f -exec chmod 664 {} \;
 
 # Copy any customised wordpress files, if passed via WPCUSTOM_FILE
-if [ -n "${WPCUSTOM_FILE}" ] && [ -f "${WPCUSTOM_FILE}" ]
+if [ -n "${WPCUSTOM_FILE}" ]
 then
-  echo "Copying custom wordpress files ..."
-  echo "From: [${WPCUSTOM_FILE}]"
-  echo "To:   [${WPBACKUP_WPCONTENT_DIR%/*}]"
-  unzip "${WPCUSTOM_FILE}" -d "${WPBACKUP_WPCONTENT_DIR%/*}" 
-  #rm -vrf "${TEMP_DIR}/${WPBACKUP_WEBSITE}-custom"
-  #sudo tar --same-owner xpvzf "${WPCUSTOM_FILE}" -C "${TEMP_DIR}}"
-  ## move it to the parent folder of 
-  #mv -vrf "${TEMP_DIR}/${WPBACKUP_WEBSITE}-custom" "${WPBACKUP_WPCONTENT_DIR%/*}"
+  if [ -f "${WPCUSTOM_FILE}" ]
+  then
+    echo "Copying custom wordpress files ..."
+    echo "From: [${WPCUSTOM_FILE}]"
+    echo "To:   [${WPBACKUP_WPCONTENT_DIR%/*}]"
+    unzip "${WPCUSTOM_FILE}" -d "${WPBACKUP_WPCONTENT_DIR%/*}" 
+    #rm -vrf "${TEMP_DIR}/${WPBACKUP_WEBSITE}-custom"
+    #sudo tar --same-owner xpvzf "${WPCUSTOM_FILE}" -C "${TEMP_DIR}}"
+    ## move it to the parent folder of 
+    #mv -vrf "${TEMP_DIR}/${WPBACKUP_WEBSITE}-custom" "${WPBACKUP_WPCONTENT_DIR%/*}"
+  else
+    echo "The cusotom zip file [${WPCUSTOM_FILE}] was not found."
+    echo "No custom wordpress files were copied."
+  fi
+  echo "No custom zip file is specified. Skipping the customisation of wordpress installtation."
 fi
 
 # restore database
@@ -165,6 +175,9 @@ SQL_FILENAME="${SQL_FILENAME%.*}"      # remove .gz from the filename
 SQL_FILENAME="${SQL_FILENAME%.*}.sql"  # remove .tar from the filename and add .sql
 mysql "--defaults-extra-file=${MYSQL_USER_CNF_FILE}" "${WPBACKUP_DB_NAME}" < "${TEMP_DIR}/${WPBACKUP_WEBSITE}-backup/db/${SQL_FILENAME}"
 
-echo "[$(date +"%Y-%m-%d-%H%M%S")] Finishing restore task ..."
+echo "The WORDPRESS is restored SUCCESSFULLY"
+
+echo "[$(date +"%Y-%m-%d-%H%M%S")] Exiting wpbackup restore script ..."
+echo "*******************************************************************"
 
 exit 0;

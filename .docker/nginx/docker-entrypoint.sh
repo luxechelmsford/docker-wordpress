@@ -114,7 +114,7 @@ then
 elif [ -z "${DOMAIN_LIST}" ]
 then
   echo "SSL certificates already exist for wordpress and phpmyadmin"
-elif [ -f "/etc/nginx/conf.d/default.conf" ]
+elif [ ! -f "/etc/nginx/conf.d/default.conf" ]
 then
   echo "Already had a failed attempt. Won't run certboot any more. Please run certboot manually"
   if [ "${LETSENCRYPT_MODE}" == "staging" ]; then TMF="--test-cert"; else TMF=""; fi
@@ -123,13 +123,11 @@ else
   echo "Installing SSL certificate for ${WORDPRESS_ALL_SERVER_URLS} ${PHPMYADMIN_ALL_SERVER_URLS} ... "
   # Check and set TEST_MODE_FLAG (TMF)
   if [ "${LETSENCRYPT_MODE}" == "staging" ]; then TMF="--test-cert"; else TMF=""; fi
-  # Build the cerboot command line options and parameters and install certificates
-  #certbot --nginx --non-interactive --agree-tos --expand ${TMF} --email "${LETSENCRYPT_ADMIN_EMAIL}" -d "${DOMAIN_LIST}"
+  # Build the certbot command line options and parameters and install certificates
+  certbot --nginx --non-interactive --agree-tos --expand ${TMF} --email "${LETSENCRYPT_ADMIN_EMAIL}" -d "${DOMAIN_LIST}" 
   # check if all certificates get installed
-  #NOT_INSTALLED_LIST=$(getDomainList)
-  #if [ -z "${NOT_INSTALLED_LIST}" ]
-  CERBOOT_PARAMS="--nginx --non-interactive --agree-tos --expand ${TMF} --email ${LETSENCRYPT_ADMIN_EMAIL} -d ${DOMAIN_LIST}" 
-  if cetboot "${CERBOOT_PARAMS}"
+  NOT_INSTALLED_LIST=$(getDomainList)
+  if [ -z "${NOT_INSTALLED_LIST}" ]
   then
     echo "Lets Encrypt TEST certificates for wordpress and phpmyadmin installed successfully"
       

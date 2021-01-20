@@ -77,18 +77,33 @@ then
   echo "If restore is required, please delete the database"
 else
   # Lets check if the restore key is deifned and the file actually exists
-  RESTORE_KEY_FILE="${WPBACKUP_ROOT_DIR}/${WPBACKUP_RESTORE_KEY}"
   if [ -z "${WPBACKUP_RESTORE_KEY}" ]
   then
     echo "WPBACKUP_RESTORE_KEY is not defined - Restore will be skipped"
-  elif [ -f "${RESTORE_KEY_FILE}" ]
-  then
+  else
+    RETRY_COUNTER=0
     while true
     do
-      RESTORE_FILENAME="$(<"${RESTORE_KEY_FILE}")"
+      RESTORE_KEY_FILE="${WPBACKUP_ROOT_DIR}/${WPBACKUP_RESTORE_KEY}"
+      if [ -f "${RESTORE_KEY_FILE}" ]; then break; fi
+      echo "Restore key file does not exist as yet."
+      echo "May be it is yet to be synchronised with remote mount, lets wait ...";
+      if [ "${RETRY_COUNTER}" == "5" ]; then
+        echo "Restore key file [${RESTORE_KEY_FILE}] does not exist"
+        echo "Restore will be skipped"
+        break;
+      fi
+      sleep 60 # sleep for 60 seconds
+    done;
+    
+    RETRY_COUNTER=0
+    while [ -f "${RESTORE_KEY_FILE}" ]
+    do
+      RESTORE_FILENAME="$(<"${RESTORE_KEY_FILE}")";
       if [ -z "${RESTORE_FILENAME}" ]
       then
-        echo "Restore key file does not point to any restore file - Restore will be skipped"
+        echo "Restore key file [${RESTORE_FILENAME}] does not point to any restore file"
+        echo "Restore will be skipped"
         break;
       fi
       RESTORE_FILE="${WPBACKUP_ROOT_DIR}/${RESTORE_FILENAME}"
@@ -113,6 +128,11 @@ else
       else
         echo "The restore file [${RESTORE_FILE}] does not exist as yet."
         echo "May be it is yet to be synchronised with remote mount, lets wait ...";
+        if [ "${RETRY_COUNTER}" == "20" ]; then
+          echo "The restore file [${RESTORE_FILE}] does not exist"
+          echo "Restore will be skipped"
+          break;
+        fi
         sleep 60 # sleep for 60 seconds
       fi
     done
@@ -128,11 +148,7 @@ else
       export NOW; NOW="$(date "+%Y-%m-%d-%H%M")"
       if bash /bin/restore.sh "${RESTORE_FILE}" "${WPCUSTOM_FILE}" > "${WPBACKUP_LOG_DIR}/restore-${NOW}.log"
       then
-        echo "The wordpress is restored successfully from:"
-        echo "Backup file:   [${RESTORE_FILE}]"
-        if [ -n "${WPCUSTOM_FILE}" ]; then
-          echo "Wpcustom file: [${WPCUSTOM_FILE}]"
-        fi
+        echo "WORDPRESS is restored SUCCESSFULLY"
         echo "Please check the logs at [${WPBACKUP_LOG_DIR}/restore-${NOW}.log]"
         # Delete the restore file, as we are done with it
         # Otherwise it will try and restore this again, when this container is recreated
@@ -153,8 +169,6 @@ else
       fi
       unset NOW
     fi
-  else
-    echo "Restore key file [${RESTORE_KEY_FILE}] doesn't exist - Restore will be skipped"
   fi
 fi
 
