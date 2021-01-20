@@ -23,7 +23,7 @@ services:
       MYSQL_HOST:                    mysql
       MYSQL_DATABASE:                demo
       MYSQL_USER:                    demo
-      MYSQL_ROOT_PASSWORD:           szgjzFFG556FF12707
+      MYSQL_ROOT_PASSWORD:           szgjzFFG556FF12822
       MYSQL_PASSWORD:                fdgshadfg53476cvgda
       #MYSQL_ALLOW_EMPTY_PASSWORD:   "yes"
     volumes:
@@ -88,7 +88,7 @@ services:
       LETSENCRYPT_LOG_DIR:           /var/log/letsencrypt
       NGINX_LOG_DIR:                 /var/log/nginx
       WORDPRESS_ALL_SERVER_URLS:     "www.example.com example.com"
-      PHPMYADMIN_ALL_SERVER_URLS:    "phpmyadmin.example.com"
+      PHPMYADMIN_ALL_SERVER_URLS:    "sql.example.com"
     volumes:
       - log-data-volume:/var/log
       - nginx-cert-volume:/etc/letsencrypt
@@ -120,7 +120,7 @@ services:
       WPBACKUP_DB_NAME:              demo
       WPBACKUP_DB_USER:              demo
       WPBACKUP_DB_PASSWORD:          fdgshadfg53476cvgda
-      WPBACKUP_ROOT_DB_PASSWORD:     szgjzFFG556FF12707
+      WPBACKUP_ROOT_DB_PASSWORD:     szgjzFFG556FF12822
       WPBACKUP_WPCONTENT_DIR:        /var/www/html/wp-content
       WPBACKUP_ROOT_DIR:             /var/backups/demo
       WPBACKUP_LOG_DIR:              /var/log/wpbackup
