@@ -1,9 +1,0 @@
-docker stop luxe-live-mysql luxe-live-webdrive luxe-live-wpbackup luxe-live-wordpress luxe-livephpmyadmin luxe-live-nginx
-docker rm luxe-live-mysql luxe-live-webdrive luxe-live-wpbackup luxe-live-wordpress luxe-livephpmyadmin luxe-live-nginx
-docker volume rm  luxe-live_log-data-volume luxe-live_mysql-data-volume luxe-live_nginx-cert-volume luxe-live_phpmyadmin-data-volume luxe-live_webdrive-data-volume luxe-live_wordpress-data-volume luxe-live_wpbackup-data-volume
-
-docker stop luxe-live-webdrive luxe-live-wpbackup 
-docker rm luxe-live-webdrive luxe-live-wpbackup 
-docker volume rm luxe-live_webdrive-data-volume luxe-live_wpbackup-data-volume
-
-docker stop luxe-live-wpbackup
