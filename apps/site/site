@@ -106,14 +106,14 @@ rebuiltYml() {
   local WORDPRESS_ALL_SERVER_URLS="${WEB_ALL_SERVER_URLS}"
   # If the additional url is a substing of main url
   # e.g. main url is www.example.com and additional url is example.com
-  # our phpmyadmin url will be phpmyadmin.example.com
+  # our phpmyadmin url will be sql.example.com
   # else we will just prepand phymyadmin infront of the main url
   local PHPMYADMIN_ALL_SERVER_URLS=""
   if [ "${WEB_MAIN_SERVER_URL}" != "${WEB_ADD_SERVER_URL}" ] && [[ ${WEB_MAIN_SERVER_URL} == *"${WEB_ADD_SERVER_URL}"* ]]
   then
-    PHPMYADMIN_ALL_SERVER_URLS="phpmyadmin.${WEB_ADD_SERVER_URL}"
+    PHPMYADMIN_ALL_SERVER_URLS="sql.${WEB_ADD_SERVER_URL}"
   else
-    PHPMYADMIN_ALL_SERVER_URLS="phpmyadmin.${WEB_MAIN_SERVER_URL}"  
+    PHPMYADMIN_ALL_SERVER_URLS="sql.${WEB_MAIN_SERVER_URL}"  
   fi
   #
   # Set the wpbackup environment variables
