@@ -35,15 +35,16 @@ else
   DRIVE_TYPE=$(stat --file-system --format=%T "${WEBDRIVE_ROOT_DIR%/*}");
   if [ "${DRIVE_TYPE}" == "fuseblk" ]
   then
-    echo "Webdrive has already been mounted"
+    echo "WEBDRIVE has ALREADY been mounted"
   else
     # Mount the webdrive please note ${WEBDRIVE_ROOT_DIR%/*} would remove the top level subdir
     echo "Mounting the webdrive ..."
     echo "y" | mount -t davfs "$WEBDRIVE_URL" "${WEBDRIVE_ROOT_DIR%/*}" -o uid=0,gid=users,dir_mode=755,file_mode=755
+    echo "" # Blank echo to over to the next line
     DRIVE_TYPE=$(stat --file-system --format=%T "${WEBDRIVE_ROOT_DIR%/*}");
     if [ "${DRIVE_TYPE}" == "fuseblk" ]
     then
-      echo "Webdrive mounted successfully"
+      echo "WEBDRIVE mounted SUCCESSFULLY"
       # only create the remote sub folder once the wedrive is mounted
       # If it ceated in the local drive folder then it will be mounted as overlayfs
       # and never as overlayfs and then unison will throw the following error
@@ -55,7 +56,7 @@ else
         echo "Remote directory [${WEBDRIVE_ROOT_DIR}] created successfully"  
       fi
     else
-      echo "Failed to mount the webdrive"
+      echo "FAILED to mount the WEBDRIVE"
     fi
   fi
 fi

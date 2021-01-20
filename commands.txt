@@ -1,9 +1,9 @@
-docker stop tek-live-mysql tek-live-webdrive tek-live-wpbackup tek-live-wordpress tek-livephpmyadmin tek-live-nginx
-docker rm tek-live-mysql tek-live-webdrive tek-live-wpbackup tek-live-wordpress tek-livephpmyadmin tek-live-nginx
-docker volume rm  tek-live_log-data-volume tek-live_mysql-data-volume tek-live_nginx-cert-volume tek-live_phpmyadmin-data-volume tek-live_webdrive-data-volume tek-live_wordpress-data-volume tek-live_wpbackup-data-volume
+docker stop luxe-live-mysql luxe-live-webdrive luxe-live-wpbackup luxe-live-wordpress luxe-livephpmyadmin luxe-live-nginx
+docker rm luxe-live-mysql luxe-live-webdrive luxe-live-wpbackup luxe-live-wordpress luxe-livephpmyadmin luxe-live-nginx
+docker volume rm  luxe-live_log-data-volume luxe-live_mysql-data-volume luxe-live_nginx-cert-volume luxe-live_phpmyadmin-data-volume luxe-live_webdrive-data-volume luxe-live_wordpress-data-volume luxe-live_wpbackup-data-volume
 
-docker stop tek-live-webdrive tek-live-wpbackup 
-docker rm tek-live-webdrive tek-live-wpbackup 
-docker volume rm tek-live_webdrive-data-volume tek-live_wpbackup-data-volume
+docker stop luxe-live-webdrive luxe-live-wpbackup 
+docker rm luxe-live-webdrive luxe-live-wpbackup 
+docker volume rm luxe-live_webdrive-data-volume luxe-live_wpbackup-data-volume
 
-docker stop tek-live-wpbackup
+docker stop luxe-live-wpbackup

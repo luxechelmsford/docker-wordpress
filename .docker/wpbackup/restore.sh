@@ -141,10 +141,16 @@ rm -rf "${WPBACKUP_WPCONTENT_DIR}"
 echo "Copying the new wp-content folder ..."
 mv -f "${WPSRC_DIR}" "${WPBACKUP_WPCONTENT_DIR}"
 
-echo "Fixing any file permissions ..."
-find "${WPBACKUP_WPCONTENT_DIR}" -exec chown "www-data:www-data" {} \;
-find "${WPBACKUP_WPCONTENT_DIR}" -exec chgrp "www-data" {} \;
+echo "Setting Wordpress specific file permissions ..."
+echo "Setting ownership to www-data ..."
+# Use 82 for gid/uid and not www-data, as they have uid/gid 33 in ubunti 20.04
+# Hence use www-data will make wp-content in assisible to wordpress and nginx services which run of www-data
+find "${WPBACKUP_WPCONTENT_DIR}" -exec chown 82:82 {} \;  
+echo "Setting group to www-data ..."
+find "${WPBACKUP_WPCONTENT_DIR}" -exec chgrp 82 {} \;
+echo "Setting directory permission to 775 ..."
 find "${WPBACKUP_WPCONTENT_DIR}" -type d -exec chmod 775 {} \;
+echo "Setting file permission to 664 ..."
 find "${WPBACKUP_WPCONTENT_DIR}" -type f -exec chmod 664 {} \;
 
 # Copy any customised wordpress files, if passed via WPCUSTOM_FILE
