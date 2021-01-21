@@ -32,7 +32,7 @@ then
   echo "Skipping the mounting of the web drive. Webdrive credentials not found in the secrets file"
 else
   # Check if the webdrive is mounted
-  DRIVE_TYPE=$(stat --file-system --format=%T "${WEBDRIVE_ROOT_DIR%/*}");
+      DRIVE_TYPE=$(stat --file-system --format=%T "${WEBDRIVE_ROOT_DIR%/*}");
   if [ "${DRIVE_TYPE}" == "fuseblk" ]
   then
     echo "WEBDRIVE has ALREADY been mounted"

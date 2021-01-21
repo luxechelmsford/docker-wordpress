@@ -220,7 +220,6 @@ addSite() {
 
 
 editSite() {
-
   if [ ! -z "${WEB_HTTP_PORT}" ]; then
       MSG1="HTTP Port: ${WEB_HTTP_PORT}"
   fi
@@ -277,7 +276,20 @@ editSite() {
   if [ -z "$WEB_HTTP_PORT" ]; then  WEB_HTTP_PORT=${ARRAY[1]}; fi
   if [ -z "$WEB_HTTPS_PORT" ]; then  WEB_HTTPS_PORT=${ARRAY[2]}; fi
   if [ -z "$WEB_SERVER_URL" ]; then WEB_SERVER_URL=${ARRAY[3]}; fi
-  if [ -z "$ADD_SERVER_URL" ] && ["${ARRAY[4]}" != "${ARRAY[3]}" ]; then ADD_SERVER_URL=${ARRAY[4]}; fi
+  if [ -z "$ADD_SERVER_URL" ] && [ "${ARRAY[4]}" != "${ARRAY[3]}" ]; then ADD_SERVER_URL=${ARRAY[4]}; fi
+  if [ -z "$ADD_SERVER_URL" ]
+  then
+    echo ADD_SERVER_URL is blank
+    if [ "${ARRAY[4]}" != "${ARRAY[3]}" ]
+    then
+      echo "arry4 and array 3 are ot same  [${ARRAY[4]} != ${ARRAY[3]} ]"
+      ADD_SERVER_URL=${ARRAY[4]};
+    else 
+      echo array3 and array are equal
+    fi
+  else 
+    echo ADD_SERVER_URL is NOT blank
+  fi
   
   # ESCAPE the SED Char in the NEW Line and replace it
   NEW_LINE="${WEBSITE_NAME}|${WEB_HTTP_PORT}|${WEB_HTTPS_PORT}|${WEB_SERVER_URL}|${ADD_SERVER_URL:-${WEB_SERVER_URL}}"

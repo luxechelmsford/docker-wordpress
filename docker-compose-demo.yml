@@ -23,7 +23,7 @@ services:
       MYSQL_HOST:                    mysql
       MYSQL_DATABASE:                demo
       MYSQL_USER:                    demo
-      MYSQL_ROOT_PASSWORD:           szgjzFFG556FF14255
+      MYSQL_ROOT_PASSWORD:           szgjzFFG556FF16871
       MYSQL_PASSWORD:                fdgshadfg53476cvgda
       #MYSQL_ALLOW_EMPTY_PASSWORD:   "yes"
     volumes:
@@ -120,7 +120,7 @@ services:
       WPBACKUP_DB_NAME:              demo
       WPBACKUP_DB_USER:              demo
       WPBACKUP_DB_PASSWORD:          fdgshadfg53476cvgda
-      WPBACKUP_ROOT_DB_PASSWORD:     szgjzFFG556FF14255
+      WPBACKUP_ROOT_DB_PASSWORD:     szgjzFFG556FF16871
       WPBACKUP_WPCONTENT_DIR:        /var/www/html/wp-content
       WPBACKUP_ROOT_DIR:             /var/backups/demo
       WPBACKUP_LOG_DIR:              /var/log/wpbackup
