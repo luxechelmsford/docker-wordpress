@@ -1,0 +1,20 @@
+#FROM ubuntu:20.04
+FROM alpine:3.13.0
+
+#RUN apt-get update \
+#  && apt-get install -y davfs2 ca-certificates unison \
+#  && apt-get install gettext-base vi bash \
+#  && apt-get clean \
+RUN apk --no-cache update \
+  && apk add davfs2 ca-certificates unison \ 
+  # for _netdev driver
+  #&& apk add nfs-utils openrc \
+  && apk add vim bash \
+  && mkdir -p /mnt/webdrive \
+  && rm -rf /tmp/* /var/lib/apt/lists/* /var/tmp/*
+
+
+COPY ./docker-entrypoint.sh /bin/entrypoint.sh
+COPY ./default.prf /root/.unison/default.prf
+
+ENTRYPOINT [ "/bin/entrypoint.sh" ]

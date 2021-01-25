@@ -7,7 +7,6 @@ echo "[$(date +"%Y-%m-%d-%H%M%S")] Entered mysql entrypoint script ..."
 if [ -z "${MYSQL_ROOT_PASSWORD}" ];         then echo "Error: MYSQL_ROOT_PASSWORD not set";         echo "Finished: FAILURE"; exit 1; fi
 
 # Create the conf file
-# Do not include double quotes around ~/.my.cnf, it wont' expand 
 if [ ! -s "/etc/mysql/conf.d/.mycnf" ]
 then
   echo "Creating Mysql config file ...";

@@ -1,5 +1,6 @@
 *.yml
 yarn.lock
 node_modules
+commands.xt
 !.gitignore
 !docker-compose-demo.yml

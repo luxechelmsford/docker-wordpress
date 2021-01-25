@@ -23,18 +23,12 @@ services:
       MYSQL_HOST:                    mysql
       MYSQL_DATABASE:                demo
       MYSQL_USER:                    demo
-      MYSQL_ROOT_PASSWORD:           szgjzFFG556FF16871
-      MYSQL_PASSWORD:                fdgshadfg53476cvgda
-      #MYSQL_ALLOW_EMPTY_PASSWORD:   "yes"
+      MYSQL_ROOT_PASSWORD:           mysqlrootpassword
+      MYSQL_PASSWORD:                mysqluserpassword
     volumes:
       - mysql-data-volume:/var/lib/mysql
-      - wpbackup-data-volume:/var/backups/demo
-#    secrets:
-#      - source:                      mysql-pwd-key
-#        target:                      /run/secrets/
-#   #configs:
-#      - source:                      mysql-cnf-key
-#        target:                      /etc/mysql/conf.d/my.cnf
+      - mysql-conf-volume:/etc/mysql/conf.d
+      - log-data-volume:/var/log
     cap_add:
       - SYS_NICE                     # CAP_SYS_NICE
 
@@ -48,20 +42,19 @@ services:
       WORDPRESS_DB_HOST:             mysql
       WORDPRESS_DB_NAME:             demo
       WORDPRESS_DB_USER:             demo
-      WORDPRESS_DB_PASSWORD:         fdgshadfg53476cvgda
+      WORDPRESS_DB_PASSWORD:         mysqluserpassword
       WORDPRESS_TABLE_PREFIX:        wp_
       WORDPRESS_CONFIG_EXTRA: |
         define( 'WP_HOME', 'http://www.example.com' );
         define( 'WP_SITEURL', 'http://www.example.com' );
+        define( 'FS_METHOD', 'direct');
     volumes:
       - wordpress-data-volume:/var/www/html
+      - log-data-volume:/var/log
     depends_on:
       - mysql
     links:
       - mysql
-#    secrets:
-#      - source:                      mysql-pwd-key
-#        target:                      /run/secrets/
 
   # PhpMyAdmin Service
   phpmyadmin:
@@ -70,9 +63,11 @@ services:
     restart:                         "no"
     working_dir:                     /var/www/phpmyadmin
     environment:
+      PHPMYADMIN_ENABLED:           "no"
       PMA_HOST:                      mysql
     volumes:
       - phpmyadmin-data-volume:/var/www/phpmyadmin
+      - log-data-volume:/var/log
     depends_on:
       - mysql
 
@@ -94,18 +89,12 @@ services:
       - nginx-cert-volume:/etc/letsencrypt
       - wordpress-data-volume:/var/www/html
       - phpmyadmin-data-volume:/var/www/phpmyadmin
-#    secrets:
-#   #configs:
-#      - source:                      nginx-wordpress-cnf-key
-#        target:                      /run/secrets/
-#      - source:                      nginx-phpmyadmin-cnf-key
-#        target:                      /run/secrets/
     depends_on:
       - wordpress
       - phpmyadmin
     ports:
-      - 8080:80
-      - 8443:443
+      - 20100:80
+      - 30100:443
 
   # Backup service
   wpbackup:
@@ -119,8 +108,8 @@ services:
       WPBACKUP_DB_HOST:              mysql
       WPBACKUP_DB_NAME:              demo
       WPBACKUP_DB_USER:              demo
-      WPBACKUP_DB_PASSWORD:          fdgshadfg53476cvgda
-      WPBACKUP_ROOT_DB_PASSWORD:     szgjzFFG556FF16871
+      WPBACKUP_DB_PASSWORD:          mysqluserpassword
+      WPBACKUP_ROOT_DB_PASSWORD:     mysqlrootpassword
       WPBACKUP_WPCONTENT_DIR:        /var/www/html/wp-content
       WPBACKUP_ROOT_DIR:             /var/backups/demo
       WPBACKUP_LOG_DIR:              /var/log/wpbackup
@@ -139,73 +128,54 @@ services:
       - wpbackup-data-volume:/var/backups/demo
     depends_on:
       - mysql
-#    secrets:
-#      - source:                      mysql-pwd-key
-#        target:                      /run/secrets/
-#      - source:                      dropbox-token-key
-#        target:                      /run/secrets/
-#      - source:                      gpg-password-key
-#        target:                      /run/secrets/
   
   # Webdrive service
   webdrive:
     container_name:                  demo-webdrive
     image:                           thetek/webdrive:1.0.0
     restart:                         always
-    working_dir:                     /mnt/webdrive/demo
+    working_dir:                     /var/www/html
     environment:
-      WEBDRIVE_URL:                  https://webdrive/example.com:5001/share/
-      WEBDRIVE_UID:                  webdavuid
-      WEBDRIVE_PWD:                  webdavpwd
+      WEBDRIVE_ENABLED:              "no"
+      WEBDRIVE_URL:                  
+      WEBDRIVE_UID:                  
+      WEBDRIVE_PWD:                  
       WEBDRIVE_ROOT_DIR:             /mnt/webdrive/demo
       WPBACKUP_ROOT_DIR:             /var/backups/demo
     volumes:
+      - log-data-volume:/var/log
       - wpbackup-data-volume:/var/backups/demo:cached
       - webdrive-data-volume:/mnt/webdrive/demo:delegated
-#    secrets:
-#      - source:                      webdrive-cer-key
-#        target:                      /etc/davfs2/certs/
-#      - source:                      webdrive-dfs-key            
-#        target:                      /run/secrets/
-#    #configs:
-#      - source:                      webdrive-prf-key            
-#        target:                      /root/.unison/default.prf
     devices:
       - /dev/fuse
     cap_add:
       - SYS_ADMIN
     privileged: true
-
-## Secrets
-#secrets:
-#  mysql-pwd-key:
-#    file:                            
-#  dropbox-token-key:
-#    file:                            
-#  gpg-password-key:
-#    file:                            
-#  webdrive-cer-key:
-#    file:                            
-#  webdrive-dfs-key:
-#    file:                            
-##
-## Configs aren't working so sending all config as secrets
-## Configs
-##configs:
-#  mysql-cnf-key:
-#    file:                            
-#  nginx-wordpress-cnf-key:
-#    file:                            
-#  nginx-phpmyadmin-cnf-key:
-#    file:                            
-#  webdrive-prf-key:
-#    file:                            
-
+  
+  # Vsftpd service
+  vsftpd:
+    container_name:                  demo-vsftpd
+    image:                           thetek/vsftpd:1.0.0
+    restart:                         "no"
+    working_dir:                     /var/www/html
+    environment:
+      VSFTPD_ENABLED:                "no"
+      VSFTPD_USERNAME:               demo
+      VSFTPD_PASSWORD:               ghtyVX45BDYF7TD45FWL
+      VSFTPD_HOME_DIR:               /var/www/html/wp-content
+      VSFTPD_SERVER_URL:             ftp.example.com
+    volumes:
+      - log-data-volume:/var/log
+      - wordpress-data-volume:/var/www/html
+    ports:
+      - 0.0.0.0:40100:21
+      - 0.0.0.0:41100-41110:21000-21010
 
 # Volumes
 volumes:
   log-data-volume:                   {}
   mysql-data-volume:                 {}
+  mysql-conf-volume:                 {}
   wordpress-data-volume:             {}
   phpmyadmin-data-volume:            {}
   nginx-cert-volume:                 {}

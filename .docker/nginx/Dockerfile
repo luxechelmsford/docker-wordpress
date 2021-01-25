@@ -10,7 +10,5 @@ COPY ./configs/redis.conf /etc
 COPY ./configs/templates /etc/nginx/templates/
 COPY ./docker-entrypoint.sh /bin/entrypoint.sh
 
-#RUN usr/bin/crontab /cron-task.txt && rm -f /cron-task.txt
-
 ENTRYPOINT [ "entrypoint.sh" ]
 CMD ["nginx", "-g", "daemon off;"]

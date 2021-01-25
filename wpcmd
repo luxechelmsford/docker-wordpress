@@ -35,26 +35,24 @@ Command line interface for the Docker-based web development environment wordpres
     [-c|cmd=site] ................... Manage a website configuration
       [-a|add] ....................   Add the configuration of a new website 
         <-n|--name=websiteName>         The secific website whose configration is to be added.
-        <-p|--http-port=port>           Numeric port value for http connection
-        <-x|--https-port=port]>         Numeric port value for ssl/https/X.509
         <-w|--web-url=url>              The web url e.g. www.example.com.
                                         The wordpress site var is set to this
                                         So any other urls are eventually redireded to this uRL 
         [-u|--add-url=url]              The additional url, e.g. example.com
       [-e|--edit] .................   Edit the configuration of an existing website
         <-n|--name=websiteName>         The secific website whose configration is to be added.
-        [-p|--http-port=port]           Numeric port value for http connection
-        [-x|--https-port=port]          Numeric port value for ssl/https/X.509
         [-w|--web-url=url]              The web url e.g. www.example.com.
                                         The wordpress site var is set to this
                                         So any other urls are eventually redireded to this uRL 
         [-u|--add-url=url]              The additional url, e.g. example.com
       [-v|--view] .................   View all site details ot the specified one's
-        [-n|--name=websiteName]         The name of the site to be viewed. -s= will list all sites
+        [-n|--name=websiteName]         The name of the site to be viewed. -n= will list all sites
       [-d|--del] ..................   Delete the specified site detials
         <-n|--name=websiteName>         The name of the site to be deleted
-      [-r|--rebuild] ..............   Rebuild all site yamls - should be used when template files are changed
-        [-n|--name=websiteName]         The name of the site whose yaml to be rebuilt. -s= will rebuilt yaml for all sites
+      [-b|--build] ..............     Rebuild all site yamls - should be used when template files are changed
+        [-n|--name=websiteName]         The name of the site whose yaml to be rebuilt. -n= will rebuilt yaml for all sites
+      [-r|--remcont] ..............   Remove containers for all services that are disabled in the config
+        [-n|--name=websiteName]         The name of the site whose yaml to be rebuilt. -n= will rebuilt yaml for all sites
     [-c|cmd=cert-gen] ...............  Generate a new certificate
       <-n|--name=siteName>               The name of the site fr which the certificates are to be generated
       <-u|url=siteUrl>                   The site url for which the certificate to be generated
@@ -70,9 +68,9 @@ EOF
 # Build all of the images, or the passed one
 build () {
   if [ -n "$IMAGE_NAME" ]  && [ "$IMAGE_NAME" != "mysql" ]  && [ "$IMAGE_NAME" != "nginx" ]  \
-     &&   [ "$IMAGE_NAME" != "wpbackup" ] && [ "$IMAGE_NAME" != "webdrive" ]
+     &&   [ "$IMAGE_NAME" != "wpbackup" ] && [ "$IMAGE_NAME" != "webdrive" ] && [ "$IMAGE_NAME" != "vsftpd" ]
   then
-    echo "Invalid image name [$IMAGE_NAME] passed. Valid values are <blank>, mysql, nginx, wpbackup and webdrive"
+    echo "Invalid image name [$IMAGE_NAME] passed. Valid values are <blank>, mysql, nginx, wpbackup, webdrive and vsftpd"
     echo ""
     echo ""
     exit 1;
@@ -105,6 +103,14 @@ build () {
     docker image prune --force --filter='label=thetek_webdrive:latest'
     echo ""
   fi
+  
+  if [ -z "$IMAGE_NAME" ] || [ "$IMAGE_NAME" == "vsftpd" ]; then
+    echo "Building image [vsftpd] ..."
+    docker build --no-cache --tag thetek/vsftpd:1.0.0 --label thetek_vsftpd:latest ./.docker/vsftpd
+    docker image prune --force --filter='label=thetek_vsftpd:latest'
+    echo ""
+  fi
+
   echo ""
 }
 
@@ -140,7 +146,11 @@ up () {
     echo ""
     exit 1;    
   fi
+
   docker-compose -f docker-compose-${WEBSITE_NAME}.yml -p=${WEBSITE_NAME} up -d
+
+	# Stop and remove any containers whose services are disabled
+	bash "${SITE_APP_FILE}" "-r" "-n=${WEBSITE_NAME}"
 }
 
 # Stop and destroy the containers
@@ -163,6 +173,9 @@ start () {
     exit 1;    
   fi
   docker-compose -f docker-compose-${WEBSITE_NAME}.yml -p=${WEBSITE_NAME} start -d
+	
+	# Stop and remove any containers whose services are disabled
+	bash "${SITE_APP_FILE}" "-r" "-n=${WEBSITE_NAME}"
 }
 
 # Stop the containers
@@ -210,6 +223,7 @@ cert_install () {
 SCRIPT_PATH=$(cd "$(dirname "$0")"; pwd)
 ROOT_DIR=${SCRIPT_PATH%/*}
 SCRIPT_FILE="${SCRIPT_PATH}/wpcmd" 
+SITE_APP_FILE="${SCRIPT_PATH}/apps/site/site.sh"
 
 # set the environment variables from the argument
 # iterate all but the last
@@ -250,7 +264,7 @@ elif [ -z "${COMMAND}" ]; then
   echo ""
   exit 1;
 elif [ "${COMMAND}" == "site" ]; then
-  bash "${SCRIPT_PATH}/apps/site/site" ${options[@]}
+  bash "${SITE_APP_FILE}" ${options[@]}
   exit 1;
 elif [ "${COMMAND}" == "cert-gen" ] || [ "${COMMAND}" == "cert-inst" ]; then
   # to do handle certification code

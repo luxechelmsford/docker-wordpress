@@ -124,7 +124,7 @@ else
   # Check and set TEST_MODE_FLAG (TMF)
   if [ "${LETSENCRYPT_MODE}" == "staging" ]; then TMF="--test-cert"; else TMF=""; fi
   # Build the certbot command line options and parameters and install certificates
-  certbot --nginx --non-interactive --agree-tos --expand ${TMF} --email "${LETSENCRYPT_ADMIN_EMAIL}" -d "${DOMAIN_LIST}" 
+  certbot --nginx --non-interactive --agree-tos --expand "${TMF}" --email "${LETSENCRYPT_ADMIN_EMAIL}" -d "${DOMAIN_LIST}" 
   # check if all certificates get installed
   NOT_INSTALLED_LIST=$(getDomainList)
   if [ -z "${NOT_INSTALLED_LIST}" ]

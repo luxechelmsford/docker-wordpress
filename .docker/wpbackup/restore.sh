@@ -113,23 +113,35 @@ echo "Uncompressing the backup tar ..."
 sudo tar --same-owner -xpzf "${RESTORE_FILE}" --directory "${TEMP_DIR}/"
 
 # Check we have the right foler structure
-WPSRC_DIR=""
+wpsrcDir=""; dbsrcDir="";
 if [ -d "${TEMP_DIR}/${WPBACKUP_WEBSITE}-backup/wp" ]
 then
-  WPSRC_DIR="${TEMP_DIR}/${WPBACKUP_WEBSITE}-backup/wp"
+  wpsrcDir="${TEMP_DIR}/${WPBACKUP_WEBSITE}-backup/wp"
+  dbsrcDir="${TEMP_DIR}/${WPBACKUP_WEBSITE}-backup/db"
+elif [ -d "${TEMP_DIR}/${WPBACKUP_WEBSITE%-*}-backup/wp" ]
+then
+  # We are restoring from a backup from live to test (i.e. demo to demo-test)
+  wpsrcDir="${TEMP_DIR}/${WPBACKUP_WEBSITE%-*}-backup/wp"
+	dbsrcDir="${TEMP_DIR}/${WPBACKUP_WEBSITE%-*}-backup/db"
+elif [ -d "${TEMP_DIR}/${WPBACKUP_WEBSITE}-live-backup/wp" ]
+then
+  # We are restoring from a backup made with -live prefix
+  wpsrcDir="${TEMP_DIR}/${WPBACKUP_WEBSITE}-live-backup/wp"
+	dbsrcDir="${TEMP_DIR}/${WPBACKUP_WEBSITE}-live-backup/db"
 elif [ -d "${TEMP_DIR}/${WPBACKUP_WEBSITE}-backup/www/wp-content" ]
 then
-  # its an achive from an older backup script
-  WPSRC_DIR="${TEMP_DIR}/${WPBACKUP_WEBSITE}-backup/www/wp-content"
+	# its an achive from an older backup script
+	wpsrcDir="${TEMP_DIR}/${WPBACKUP_WEBSITE}-backup/www/wp-content"
+  dbsrcDir="${TEMP_DIR}/${WPBACKUP_WEBSITE}-backup/db"
 else
-  echo "Invalid archive. Folder [${TEMP_DIR}/${WPBACKUP_WEBSITE}-backup/wp] not found."
+  echo "Invalid archive. WP Folder [${TEMP_DIR}/${WPBACKUP_WEBSITE}-backup/wp] not found."
   echo "Finished: FAILURE";
   exit 1;
 fi
 
-if [ ! -d "${TEMP_DIR}/${WPBACKUP_WEBSITE}-backup/db" ]
+if [ ! -d "${dbsrcDir}" ]
 then
-  echo "Invalid archive. Folder [${TEMP_DIR}/${WPBACKUP_WEBSITE}-backup/db] not found."
+  echo "Invalid archive. DB Folder [${dbsrcDir}] not found."
   echo "Finished: FAILURE";
   exit 1;
 fi
@@ -139,7 +151,7 @@ rm -rf "${WPBACKUP_WPCONTENT_DIR}"
 
 # Make sure the name below matches with the backup.sh script
 echo "Copying the new wp-content folder ..."
-mv -f "${WPSRC_DIR}" "${WPBACKUP_WPCONTENT_DIR}"
+mv -f "${wpsrcDir}" "${WPBACKUP_WPCONTENT_DIR}"
 
 echo "Setting Wordpress specific file permissions ..."
 echo "Setting ownership to www-data ..."
@@ -179,7 +191,7 @@ echo "Restoring data from mysql dump file ..."
 SQL_FILENAME="${RESTORE_FILE##*/}"     # remove directry from the path
 SQL_FILENAME="${SQL_FILENAME%.*}"      # remove .gz from the filename
 SQL_FILENAME="${SQL_FILENAME%.*}.sql"  # remove .tar from the filename and add .sql
-mysql "--defaults-extra-file=${MYSQL_USER_CNF_FILE}" "${WPBACKUP_DB_NAME}" < "${TEMP_DIR}/${WPBACKUP_WEBSITE}-backup/db/${SQL_FILENAME}"
+mysql "--defaults-extra-file=${MYSQL_USER_CNF_FILE}" "${WPBACKUP_DB_NAME}" < "${dbsrcDir}/${SQL_FILENAME}"
 
 echo "The WORDPRESS is restored SUCCESSFULLY"
 
