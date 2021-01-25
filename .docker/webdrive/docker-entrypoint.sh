@@ -42,6 +42,17 @@ else
 		then
 			echo "WEBDRIVE has ALREADY been mounted"
 		else
+		  
+			# Webdav on a reboot complain about unable to mount as found PID file /var/run/mount.davfs/mnt-webdrive.pid.
+			# lets first delete this file
+			webDrivePidFile="${WEBDRIVE_ROOT_DIR%/*}"		# Get the root webfolder
+			webDrivePidFile="${webDrivePidFile#/}"			# Remove the first slash
+			webDrivePidFile="${webDrivePidFile//\//-}"	# Replace slashed with - to get the pid file name
+			if [ -f "/var/run/mount.davfs/${webDrivePidFile}.pid" ]
+			then
+			  echo "Removing the pid file created from previously running the container"
+			  rm -f "/var/run/mount.davfs/${webDrivePidFile}.pid";
+			fi
 			# Mount the webdrive please note ${WEBDRIVE_ROOT_DIR%/*} would remove the top level subdir
 			echo "Mounting the webdrive ..."
 			echo "y" | mount -t davfs "$WEBDRIVE_URL" "${WEBDRIVE_ROOT_DIR%/*}" -o uid=0,gid=users,dir_mode=755,file_mode=755
