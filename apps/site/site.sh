@@ -303,10 +303,10 @@ main() {
       help
       ;;
     *)
-        echo "Unknown command ${command} found"
-        echo "    Vaid commands are: add, edit, view, del, rebuild, remcont and help"
-        echo ""
-        exit 1;
+      echo "Unknown command ${command} found"
+      echo "    Vaid commands are: add, edit, view, del, rebuild, remcont and help"
+      echo ""
+      exit 1;
   esac
   echo ""
 }
