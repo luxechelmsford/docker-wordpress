@@ -14,36 +14,37 @@ services:
 
   # MySQL Service
   mysql:
-    container_name:                  demo-mysql
-    image:                           thetek/mysql:8.0.22
-    restart:                         always
-    working_dir:                     /var/lib/mysql
+    container_name:                   demo-mysql
+    image:                            thetek/mysql:8.0.22
+    restart:                          always
+    working_dir:                      /var/lib/mysql
     environment:
-      MYSQL_PORT:                    3306
-      MYSQL_HOST:                    mysql
-      MYSQL_DATABASE:                demo
-      MYSQL_USER:                    demo
-      MYSQL_ROOT_PASSWORD:           mysqlrootpassword
-      MYSQL_PASSWORD:                mysqluserpassword
+      MYSQL_PORT:                     3306
+      MYSQL_HOST:                     mysql
+      MYSQL_DATABASE:                 demo
+      MYSQL_USER:                     demo
+      MYSQL_ROOT_PASSWORD:            mysqlrootpassword
+      MYSQL_PASSWORD:                 mysqluserpassword
     volumes:
       - mysql-data-volume:/var/lib/mysql
       - mysql-conf-volume:/etc/mysql/conf.d
       - log-data-volume:/var/log
     cap_add:
-      - SYS_NICE                     # CAP_SYS_NICE
+      - SYS_NICE                      # CAP_SYS_NICE
 
   # Wordpress Service
   wordpress:
-    container_name:                  demo-wordpress
-    image:                           wordpress:5.6.0-php7.4-fpm-alpine
-    restart:                         always
-    working_dir:                     /var/www/html
+    container_name:                   demo-wordpress
+    image:                            wordpress:5.6.0-php7.4-fpm-alpine
+    restart:                          always
+    working_dir:                      /var/www/html
     environment:
-      WORDPRESS_DB_HOST:             mysql
-      WORDPRESS_DB_NAME:             demo
-      WORDPRESS_DB_USER:             demo
-      WORDPRESS_DB_PASSWORD:         mysqluserpassword
-      WORDPRESS_TABLE_PREFIX:        wp_
+      # Do not add host here, it causes the error - mysqli::__construct(): (HY000/2002)
+      #WORDPRESS_DB_HOST:             mysql
+      WORDPRESS_DB_NAME:              demo
+      WORDPRESS_DB_USER:              demo
+      WORDPRESS_DB_PASSWORD:          mysqluserpassword
+      WORDPRESS_TABLE_PREFIX:         wp_
       WORDPRESS_CONFIG_EXTRA: |
         define( 'WP_HOME', 'http://www.example.com' );
         define( 'WP_SITEURL', 'http://www.example.com' );
@@ -58,13 +59,13 @@ services:
 
   # PhpMyAdmin Service
   phpmyadmin:
-    container_name:                  demo-phpmyadmin
-    image:                           phpmyadmin/phpmyadmin:5.0.0-fpm-alpine 
-    restart:                         "no"
-    working_dir:                     /var/www/phpmyadmin
+    container_name:                   demo-phpmyadmin
+    image:                            phpmyadmin/phpmyadmin:5.0.0-fpm-alpine 
+    restart:                          "no"
+    working_dir:                      /var/www/phpmyadmin
     environment:
-      PHPMYADMIN_ENABLED:           "no"
-      PMA_HOST:                      mysql
+      PHPMYADMIN_ENABLED:            "yes"
+      PMA_HOST:                       mysql
     volumes:
       - phpmyadmin-data-volume:/var/www/phpmyadmin
       - log-data-volume:/var/log
@@ -84,6 +85,7 @@ services:
       NGINX_LOG_DIR:                 /var/log/nginx
       WORDPRESS_ALL_SERVER_URLS:     "www.example.com example.com"
       PHPMYADMIN_ALL_SERVER_URLS:    "sql.example.com"
+      PHPMYADMIN_ENABLED:            "yes"
     volumes:
       - log-data-volume:/var/log
       - nginx-cert-volume:/etc/letsencrypt
@@ -92,9 +94,13 @@ services:
     depends_on:
       - wordpress
       - phpmyadmin
-    ports:
-      - 20100:80
-      - 30100:443
+#    ports:
+#      - 20100:80
+#      - 30100:443
+    networks:
+      - default
+      - proxynet
+
 
   # Backup service
   wpbackup:
@@ -134,7 +140,7 @@ services:
     container_name:                  demo-webdrive
     image:                           thetek/webdrive:1.0.0
     restart:                         always
-    working_dir:                     /var/www/html
+    working_dir:                     /var/backups/demo
     environment:
       WEBDRIVE_ENABLED:              "no"
       WEBDRIVE_URL:                  
@@ -152,24 +158,24 @@ services:
       - SYS_ADMIN
     privileged: true
   
-  # Vsftpd service
-  vsftpd:
-    container_name:                  demo-vsftpd
-    image:                           thetek/vsftpd:1.0.0
-    restart:                         "no"
-    working_dir:                     /var/www/html
-    environment:
-      VSFTPD_ENABLED:                "no"
-      VSFTPD_USERNAME:               demo
-      VSFTPD_PASSWORD:               ghtyVX45BDYF7TD45FWL
-      VSFTPD_HOME_DIR:               /var/www/html/wp-content
-      VSFTPD_SERVER_URL:             ftp.example.com
-    volumes:
-      - log-data-volume:/var/log
-      - wordpress-data-volume:/var/www/html
-    ports:
-      - 0.0.0.0:40100:21
-      - 0.0.0.0:41100-41110:21000-21010
+#  # Vsftpd service
+#  vsftpd:
+#    container_name:                  demo-vsftpd
+#    image:                           thetek/vsftpd:1.0.0
+#    restart:                         "no"
+#    working_dir:                     /var/www/html
+#    environment:
+#      VSFTPD_ENABLED:                "no"
+#      VSFTPD_USERNAME:               demo
+#      VSFTPD_PASSWORD:               ghtyVX45BDYF7TD45FWL
+#      VSFTPD_HOME_DIR:               /var/www/html/wp-content
+#      VSFTPD_SERVER_URL:             ftp.example.com
+#    volumes:
+#      - log-data-volume:/var/log
+#      - wordpress-data-volume:/var/www/html
+#    ports:
+#      - 0.0.0.0:40100:21
+#      - 0.0.0.0:51100-51110:21000-21010
 
 # Volumes
 volumes:
@@ -181,4 +187,9 @@ volumes:
   nginx-cert-volume:                 {}
   wpbackup-data-volume:              {}
   webdrive-data-volume:              {}
-  
+
+# Network
+networks:
+  proxynet:
+    external:
+      name: dockernet

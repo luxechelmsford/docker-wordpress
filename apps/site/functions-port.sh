@@ -48,11 +48,11 @@ getPorts() {
   local httpsPort=$((30100+10*siteNo+subsiteNo))
 
   # 40100 - 48990 assigned to FTP
-  local ftpCmdPort=$((40100+10*siteNo+1000*subsiteNo))
+  local ftpCmdPort=$((40100+10*siteNo+subsiteNo))
 
   # 40100 - 48990 assigned to FTP
-  local minPort=$((40100+10*siteNo+1000*(subsiteNo+1)))
-  local maxPort=$((40100+10*siteNo+1000*(subsiteNo+1)+10))
+  local minPort=$((50100+10*siteNo+1000*(subsiteNo+1)))
+  local maxPort=$((50100+10*siteNo+1000*(subsiteNo+1)+10))
   local ftpPsvPorts="${minPort}-${maxPort}"
 
   echo "${httpPort}|${httpsPort}|${ftpCmdPort}|${ftpPsvPorts}"

@@ -114,12 +114,12 @@ function removeContainers() {
     docker rm   "${websiteName}-webdrive"
   fi
 
-  # Vsftpd service
-	local vsftpd=""
-  if [ -z "${VSFTPD_ENABLED}" ] || [ "${VSFTPD_ENABLED}" != "yes" ]; then
-    docker stop "${websiteName}-vsftpd"
-    docker rm "${websiteName}-vsftpd"
-	fi
+  ## Vsftpd service
+	#local vsftpd=""
+  #if [ -z "${VSFTPD_ENABLED}" ] || [ "${VSFTPD_ENABLED}" != "yes" ]; then
+  #  docker stop "${websiteName}-vsftpd"
+  #  docker rm "${websiteName}-vsftpd"
+	#fi
 
   echo "All containers for disabled services removed successfully."
 }

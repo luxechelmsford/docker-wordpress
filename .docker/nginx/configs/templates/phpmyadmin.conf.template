@@ -11,4 +11,7 @@ server {
     fastcgi_param  SCRIPT_FILENAME $document_root$fastcgi_script_name;
     fastcgi_param  SCRIPT_NAME     $fastcgi_script_name;
   }
+
+  access_log /var/log/nginx/phpmyadmin-access.log;
+  error_log /var/log/nginx/phpmyadmin-error.log;
 }

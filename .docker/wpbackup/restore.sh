@@ -112,7 +112,7 @@ rm -rf "${TEMP_DIR}/${WPBACKUP_WEBSITE}-backup"
 echo "Uncompressing the backup tar ..."
 sudo tar --same-owner -xpzf "${RESTORE_FILE}" --directory "${TEMP_DIR}/"
 
-# Check we have the right foler structure
+# Check we have the right folder structure
 wpsrcDir=""; dbsrcDir="";
 if [ -d "${TEMP_DIR}/${WPBACKUP_WEBSITE}-backup/wp" ]
 then

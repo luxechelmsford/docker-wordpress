@@ -38,7 +38,7 @@ getDomainList(){
   for element in "${array[@]}"
   do
     if [[ "${DOMAINS_WITH_CERTIFICATE}" != *"${element}"* ]]; then NEW_DOMAINS_FOUND="yes"; fi
-    if [ -n "${DOMAIN_LIST}" ]; then DOMAIN_LIST="${DOMAIN_LIST}, "; fi
+    if [ -n "${DOMAIN_LIST}" ]; then DOMAIN_LIST="${DOMAIN_LIST},"; fi
     DOMAIN_LIST="${DOMAIN_LIST}${element}";
   done
 
@@ -87,18 +87,21 @@ fi
 
 
 # Copy phpmyadmin.conf
-if [ ! -f "/etc/nginx/conf.d/phpmyadmin.conf" ]
+if [-n "${PHPMYADMIN_ENABLED}" ] && [ "${PHPMYADMIN_ENABLED}" == "yes" ]
 then
-  echo "Copying the phpmyadmin conf file [phpmyadmin.conf] ..."
-  # Do not replace the single quote below '${WORDPRESS_ALL_SERVER_URLS}'
-  # Otherwise the envsubst does not expand the variables
-  envsubst '${PHPMYADMIN_ALL_SERVER_URLS}' < /etc/nginx/templates/phpmyadmin.conf.template > /etc/nginx/conf.d/phpmyadmin.conf
-  if [ -f "/etc/nginx/conf.d/phpmyadmin.conf" ]
-  then
-    echo "The phpmyadmin conf file [phpmyadmin.conf] copied successfully."
-  else
-    echo "Failed to copy phpmyadmin conf file [phpmyadmin.conf]."
-  fi
+	if [ ! -f "/etc/nginx/conf.d/phpmyadmin.conf" ]
+	then
+		echo "Copying the phpmyadmin conf file [phpmyadmin.conf] ..."
+		# Do not replace the single quote below '${WORDPRESS_ALL_SERVER_URLS}'
+		# Otherwise the envsubst does not expand the variables
+		envsubst '${PHPMYADMIN_ALL_SERVER_URLS}' < /etc/nginx/templates/phpmyadmin.conf.template > /etc/nginx/conf.d/phpmyadmin.conf
+		if [ -f "/etc/nginx/conf.d/phpmyadmin.conf" ]
+		then
+			echo "The phpmyadmin conf file [phpmyadmin.conf] copied successfully."
+		else
+			echo "Failed to copy phpmyadmin conf file [phpmyadmin.conf]."
+		fi
+	fi
 fi
 
 
@@ -120,11 +123,26 @@ then
   if [ "${LETSENCRYPT_MODE}" == "staging" ]; then TMF="--test-cert"; else TMF=""; fi
   echo "    certbot --nginx --non-interactive --agree-tos --expand ${TMF} --email ${LETSENCRYPT_ADMIN_EMAIL} -d ${DOMAIN_LIST}"
 else
+  # Lets delete the default.conf, so we dont run this clode any further
+  # And risk reaching the LetsEnrypt's limits
+  # If we failed, we will have to add certificates tbis manually
+  echo "Deleting the default conf files [default.conf] ..."
+  if rm -f /etc/nginx/conf.d/default.conf
+  #if [ ! -f "/etc/nginx/conf.d/default.conf" ]
+  then
+    echo "The default conf files [default.conf] deleted successfully"
+  else
+    echo "Failed to delete default conf files [default.conf] from the conf.d folder"
+  fi
+  #
   echo "Installing SSL certificate for ${WORDPRESS_ALL_SERVER_URLS} ${PHPMYADMIN_ALL_SERVER_URLS} ... "
   # Check and set TEST_MODE_FLAG (TMF)
-  if [ "${LETSENCRYPT_MODE}" == "staging" ]; then TMF="--test-cert"; else TMF=""; fi
-  # Build the certbot command line options and parameters and install certificates
-  certbot --nginx --non-interactive --agree-tos --expand "${TMF}" --email "${LETSENCRYPT_ADMIN_EMAIL}" -d "${DOMAIN_LIST}" 
+  if [ "${LETSENCRYPT_MODE}" == "staging" ]; then
+    certbot --nginx --non-interactive --agree-tos --expand --test-cert --email "${LETSENCRYPT_ADMIN_EMAIL}" -d "${DOMAIN_LIST}"
+	else
+    certbot --nginx --non-interactive --agree-tos --expand --email "${LETSENCRYPT_ADMIN_EMAIL}" -d "${DOMAIN_LIST}"
+  fi
+	
   # check if all certificates get installed
   NOT_INSTALLED_LIST=$(getDomainList)
   if [ -z "${NOT_INSTALLED_LIST}" ]
@@ -146,18 +164,6 @@ else
     echo "Failed to installed Lets Encrypt certificate(s) for [${NOT_INSTALLED_LIST}]"
     echo "please install it manullay by running the following commnad"
     echo "    cetboot ${CERBOOT_PARAMS}"
-  fi
-  #
-  # Lets delete the default.conf, so we dont run this clode any further
-  # And risk reaching the LetsEnrypt's limits
-  # If we failed, we will have to add certificates tbis manually
-  echo "Deleting the default conf files [default.conf] ..."
-  if rm -f /etc/nginx/conf.d/default.conf
-  #if [ ! -f "/etc/nginx/conf.d/default.conf" ]
-  then
-    echo "The default conf files [default.conf] deleted successfully"
-  else
-    echo "Failed to delete default conf files [default.conf] from the conf.d folder"
   fi
 fi
 

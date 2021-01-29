@@ -68,9 +68,9 @@ EOF
 # Build all of the images, or the passed one
 build () {
   if [ -n "$IMAGE_NAME" ]  && [ "$IMAGE_NAME" != "mysql" ]  && [ "$IMAGE_NAME" != "nginx" ]  \
-     &&   [ "$IMAGE_NAME" != "wpbackup" ] && [ "$IMAGE_NAME" != "webdrive" ] && [ "$IMAGE_NAME" != "vsftpd" ]
+     &&   [ "$IMAGE_NAME" != "wpbackup" ] && [ "$IMAGE_NAME" != "webdrive" ] # && [ "$IMAGE_NAME" != "vsftpd" ]
   then
-    echo "Invalid image name [$IMAGE_NAME] passed. Valid values are <blank>, mysql, nginx, wpbackup, webdrive and vsftpd"
+    echo "Invalid image name [$IMAGE_NAME] passed. Valid values are <blank>, mysql, nginx, wpbackup and webdrive"
     echo ""
     echo ""
     exit 1;
@@ -104,12 +104,12 @@ build () {
     echo ""
   fi
   
-  if [ -z "$IMAGE_NAME" ] || [ "$IMAGE_NAME" == "vsftpd" ]; then
-    echo "Building image [vsftpd] ..."
-    docker build --no-cache --tag thetek/vsftpd:1.0.0 --label thetek_vsftpd:latest ./.docker/vsftpd
-    docker image prune --force --filter='label=thetek_vsftpd:latest'
-    echo ""
-  fi
+  #if [ -z "$IMAGE_NAME" ] || [ "$IMAGE_NAME" == "vsftpd" ]; then
+  #  echo "Building image [vsftpd] ..."
+  #  docker build --no-cache --tag thetek/vsftpd:1.0.0 --label thetek_vsftpd:latest ./.docker/vsftpd
+  #  docker image prune --force --filter='label=thetek_vsftpd:latest'
+  #  echo ""
+  #fi
 
   echo ""
 }
@@ -172,7 +172,7 @@ start () {
     echo ""
     exit 1;    
   fi
-  docker-compose -f docker-compose-${WEBSITE_NAME}.yml -p=${WEBSITE_NAME} start -d
+  docker-compose -f docker-compose-${WEBSITE_NAME}.yml -p=${WEBSITE_NAME} start
 	
 	# Stop and remove any containers whose services are disabled
 	bash "${SITE_APP_FILE}" "-r" "-n=${WEBSITE_NAME}"
