@@ -253,7 +253,7 @@ up () {
   docker-compose -f docker-compose-${websiteName}.yml -p=${websiteName} up -d
 
 	# Stop and remove any containers whose services are disabled
-	bash "${siteAppFilePath}" "remcont" "-n=${websiteName}"
+	bash "${siteAppFilePath}" "remcont" "${websiteName}"
 }
 
 
@@ -443,8 +443,9 @@ main() {
 
 
 	local websiteName=""
-	if [  "" != "build" ]
+	if [  "${command}" != "build" ]
 	then
+	  websiteName="$1"
 		if [ -z ${websiteName} ]
 		then
 			echo ""
@@ -507,7 +508,7 @@ main() {
 		destroy)
 			destroy "${websiteName}" "${destroyVolume}"
 			;;
-		uo)
+		up)
 			up "${websiteName}" "${imageName}"
 			;;
 		down)
