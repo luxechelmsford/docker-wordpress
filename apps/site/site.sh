@@ -282,29 +282,29 @@ main() {
   # Run the command
   case $command in
     add)
-        addSiteRecord "${rootFolder}" "${scriptFolder}" "${dataFile}" "${websiteName}" "${websiteUrl}" "${additionalUrl}"
-        ;;
+    	addSiteRecord "${rootFolder}" "${scriptFolder}" "${dataFile}" "${websiteName}" "${websiteUrl}" "${additionalUrl}"
+      ;;
     edit)
-        editSiteRecord "${rootFolder}" "${scriptFolder}" "${dataFile}" "${websiteName}" "${websiteUrl}|${additionalUrl}"
-       ;;
+      editSiteRecord "${rootFolder}" "${scriptFolder}" "${dataFile}" "${websiteName}" "${websiteUrl}|${additionalUrl}"
+     ;;
     view)
-        viewSiteRecord "${rootFolder}" "${scriptFolder}" "${dataFile}" "${websiteName}"
-        ;;
+      viewSiteRecord "${rootFolder}" "${scriptFolder}" "${dataFile}" "${websiteName}"
+      ;;
     del)
-        delSiteRecord "${rootFolder}" "${scriptFolder}" "${dataFile}" "${websiteName}" ""
-        ;;
+      delSiteRecord "${rootFolder}" "${scriptFolder}" "${dataFile}" "${websiteName}" ""
+      ;;
     rebuild)
-        rebuildYmls "${rootFolder}" "${scriptFolder}" "${dataFile}"
-        ;;
+      rebuildYmls "${rootFolder}" "${scriptFolder}" "${dataFile}"
+      ;;
 		remcont)
-		    removeContainers "${scriptFolder}" "${websiteName}"
-        ;;
+		  removeContainers "${scriptFolder}" "${websiteName}"
+      ;;
     help)
-        help
-        ;;
+      help
+      ;;
     *)
         echo "Unknown command ${command} found"
-        echo "Use [-h|--help] for detailed argument list"
+        echo "    Vaid commands are: add, edit, view, del, rebuild, remcont and help"
         echo ""
         exit 1;
   esac

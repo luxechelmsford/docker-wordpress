@@ -464,7 +464,7 @@ editSiteRecord() {
   newSiteRecord="${websiteName}|${websiteUrl}|${additionalUrl:-${websiteUrl}}"
   escapedNewSiteRecord=$(printf '%s\n' "${newSiteRecord}" | sed -e 's/[\/&]/\\&/g')
   sed "${lineNo}s/.*/${escapedNewSiteRecord}/" "${dataFile}" > "${dataFile}.tmp" && mv "${dataFile}.tmp" "${dataFile}"
-  
+  	
   rebuildYml "${ymlFolder}" "${scriptFolder}" "${websiteName}" "${websiteUrl}" "${additionalUrl}"
 
   echo "Site [${websiteName}] with Values:"
