@@ -46,8 +46,6 @@ deleteYml() {
 #     Para-1:   ymlFolder:        The path of the folder where the Yml files are to be generated                #
 #     Para-2:   scriptFolder:     The path of the this script file.                                             #
 #     Para-3:   Wesite name:      A name uniquely idetifyining the website e.g. demo, demo-test etc.            #
-#     Para-4:   Site Id:          A numeric value between 1 and 90                                              #
-#     Para-5:   Sub Site Id:      A numeric value between 1 and 9                                               #
 #     Para-6:   Main Web Url:     e.g. www.example.com, test.example.com                                        #
 #     Para-7:   [Additional Url]: Optional, ypically the domian name, e.g. example.com                          #
 # Return:       Generates the yml file with name 'docker-compose-<websiteName>.yml'                             #
@@ -79,24 +77,40 @@ rebuildYml() {
     exit 1;
   fi
 
-  # Site No
-  local siteNo=$4
-  if [ -z "${siteNo}" ]; then
-    echo "Failed to rebuild Yml. The site numer is not defined."
-    echo ""
-    exit 1;
-  fi
-
-  # Subsite No
-  local subsiteNo=$5
-  if [ -z "${subsiteNo}" ]; then
-    echo "Failed to rebuild Yml. The subsite numer is not defined."
-    echo ""
-    exit 1;
-  fi
+#  # Site No
+#  local siteNo=$4
+#  if [ -z "${siteNo}" ]; then
+#    echo "Failed to rebuild Yml. The site numer is not defined."
+#    echo ""
+#    exit 1;
+#  fi
+#
+#  # Subsite No
+#  local subsiteNo=$5
+#  if [ -z "${subsiteNo}" ]; then
+#    echo "Failed to rebuild Yml. The subsite numer is not defined."
+#    echo ""
+#    exit 1;
+#  fi
+#
+#  # Website Url
+#  local websiteUrl=$6
+#  if [ -z "${websiteUrl}" ]; then
+#    echo "Failed to rebuild Yml. The website url must be specified"
+#    echo "Use [-h|--help] for detailed argument list"
+#    echo ""
+#    exit 1;
+#  fi
+#
+#  # Additional Url
+#  local additionalUrl=$7
+#  # Reset the addiitonal url if its the same as websiteUrl
+#  if [ "${websiteUrl}" == "${additionalUrl}" ]; then
+#    additionalUrl=""
+#  fi
 
   # Website Url
-  local websiteUrl=$6
+  local websiteUrl=$4
   if [ -z "${websiteUrl}" ]; then
     echo "Failed to rebuild Yml. The website url must be specified"
     echo "Use [-h|--help] for detailed argument list"
@@ -105,42 +119,42 @@ rebuildYml() {
   fi
 
   # Additional Url
-  local additionalUrl=$7
+  local additionalUrl=$5
   # Reset the addiitonal url if its the same as websiteUrl
   if [ "${websiteUrl}" == "${additionalUrl}" ]; then
     additionalUrl=""
   fi
 
 
-  ###########################################################################################################
-  # Reteieve and set various port variables                                                                 #
-  ###########################################################################################################
-
-  # Get all the ports
-  returnVal=$(getPorts "${siteNo}" "${subsiteNo}" )
-  if [ "${returnVal}" == "Error*" ]
-  then
-    echo "Failed to generate Yml. Error in assigning port number. "
-    echo "${returnVal}"
-    echo ""
-    exit 1;
-  fi
-  
-  # Split the port values into an array
-  local portArray=""
-  IFS='|' read -r -a portArray <<< "$returnVal"
-  if [ 4 != "${#portArray[@]}" ]
-  then
-    echo "Failed to generate Yml. Invalid port numbers assigned"
-    echo ""
-    exit 1;
-  fi
-
-  # Assign the port values to local variables
-  local httpPort="${portArray[0]}";
-  local httpsPort="${portArray[1]}";
-  local ftpcmdPort="${portArray[2]}";
-  local ftppsvPorts="${portArray[3]}";
+#  ###########################################################################################################
+#  # Reteieve and set various port variables                                                                 #
+#  ###########################################################################################################
+#
+#  # Get all the ports
+#  returnVal=$(getPorts "${siteNo}" "${subsiteNo}" )
+#  if [ "${returnVal}" == "Error*" ]
+#  then
+#    echo "Failed to generate Yml. Error in assigning port number. "
+#    echo "${returnVal}"
+#    echo ""
+#    exit 1;
+#  fi
+#  
+#  # Split the port values into an array
+#  local portArray=""
+#  IFS='|' read -r -a portArray <<< "$returnVal"
+#  if [ 4 != "${#portArray[@]}" ]
+#  then
+#    echo "Failed to generate Yml. Invalid port numbers assigned"
+#    echo ""
+#    exit 1;
+#  fi
+#
+#  # Assign the port values to local variables
+#  local httpPort="${portArray[0]}";
+#  local httpsPort="${portArray[1]}";
+#  local ftpcmdPort="${portArray[2]}";
+#  local ftppsvPorts="${portArray[3]}";
   
   
   ###########################################################################################################
@@ -201,12 +215,12 @@ rebuildYml() {
   local PHPMYADMIN_ROOT_DIR="/var/www/phpmyadmin"
   # shellcheck disable=SC2034
   local VSFTPD_USERNAME=${dbName}
-  # shellcheck disable=SC2034
-  local VSFTPD_CMD_PORT=${ftpcmdPort}
-  # shellcheck disable=SC2034
-  local VSFTPD_PSV_PORTS=${ftppsvPorts}
-  # shellcheck disable=SC2034
-  local VSFTPD_SERVER_URL="${ftpServerUrl}"  
+#  # shellcheck disable=SC2034
+#  local VSFTPD_CMD_PORT=${ftpcmdPort}
+#  # shellcheck disable=SC2034
+#  local VSFTPD_PSV_PORTS=${ftppsvPorts}
+#  # shellcheck disable=SC2034
+#  local VSFTPD_SERVER_URL="${ftpServerUrl}"  
   
   # Set the nginx environment variables
   #
@@ -214,11 +228,11 @@ rebuildYml() {
   local WORDPRESS_ALL_SERVER_URLS="${wordpressUrls}"
   # shellcheck disable=SC2034
   local PHPMYADMIN_ALL_SERVER_URLS="${phpMyadminUrls}"
-  # shellcheck disable=SC2034
-  local WEB_HTTP_PORT="${httpPort}"
-  # shellcheck disable=SC2034
-  local WEB_HTTPS_PORT="${httpsPort}"
-  # shellcheck disable=SC2034
+#  # shellcheck disable=SC2034
+#  local WEB_HTTP_PORT="${httpPort}"
+#  # shellcheck disable=SC2034
+#  local WEB_HTTPS_PORT="${httpsPort}"
+#  # shellcheck disable=SC2034
 
   # Set the wpbackup environment variables
   #
@@ -333,22 +347,32 @@ rebuildYmls() {
   grep "${searchString}" "${dataFile}" | while read -r siteRecord ; do
     IFS='|' read -r -a siteFields <<< "$siteRecord"
 
-    if [ 5 != "${#siteFields[@]}" ]; then
+#    if [ 5 != "${#siteFields[@]}" ]; then
+#      echo "Failed to rebuild Yml files. Invalid site record [${siteRecord}]"
+#      echo "Please fix the site record and try again"
+#      echo ""
+#      exit 1;
+#    fi
+#
+#    # Get all the ports
+#    returnVal=$(getPorts "${siteFields[1]}" "${siteFields[2]}" )
+#    # Split the port values into an siteFields
+#    local portArray=()
+#    IFS='|' read -r -a portArray <<< "$returnVal"
+#
+#
+#    echo "  Building ${siteFields[0]}: ${siteFields[1]}, ${siteFields[2]}, ${portArray[0]},  ${portArray[1]},  ${portArray[2]},  ${portArray[3]}, ${siteFields[3]}, ${siteFields[4]}"
+#    rebuildYml "${ymlFolder}" "${scriptFolder}" "${siteFields[0]}" "${siteFields[1]}" "${siteFields[2]}" "${siteFields[3]}" "${siteFields[4]}"
+
+    if [ 3 != "${#siteFields[@]}" ]; then
       echo "Failed to rebuild Yml files. Invalid site record [${siteRecord}]"
       echo "Please fix the site record and try again"
       echo ""
       exit 1;
     fi
 
-    # Get all the ports
-    returnVal=$(getPorts "${siteFields[1]}" "${siteFields[2]}" )
-    # Split the port values into an siteFields
-    local portArray=()
-    IFS='|' read -r -a portArray <<< "$returnVal"
-
-
-    echo "  Building ${siteFields[0]}: ${siteFields[1]}, ${siteFields[2]}, ${portArray[0]},  ${portArray[1]},  ${portArray[2]},  ${portArray[3]}, ${siteFields[3]}, ${siteFields[4]}"
-    rebuildYml "${ymlFolder}" "${scriptFolder}" "${siteFields[0]}" "${siteFields[1]}" "${siteFields[2]}" "${siteFields[3]}" "${siteFields[4]}"
+    echo "  Building ${siteFields[0]}: ${siteFields[1]}, ${siteFields[2]}"
+    rebuildYml "${ymlFolder}" "${scriptFolder}" "${siteFields[0]}" "${siteFields[1]}" "${siteFields[2]}"
 
   done  
 

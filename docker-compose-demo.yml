@@ -95,8 +95,8 @@ services:
       - wordpress
       - phpmyadmin
 #    ports:
-#      - 20100:80
-#      - 30100:443
+#      - :80
+#      - :443
     networks:
       - default
       - proxynet
@@ -169,13 +169,13 @@ services:
 #      VSFTPD_USERNAME:               demo
 #      VSFTPD_PASSWORD:               ghtyVX45BDYF7TD45FWL
 #      VSFTPD_HOME_DIR:               /var/www/html/wp-content
-#      VSFTPD_SERVER_URL:             ftp.example.com
+#      VSFTPD_SERVER_URL:             
 #    volumes:
 #      - log-data-volume:/var/log
 #      - wordpress-data-volume:/var/www/html
 #    ports:
-#      - 0.0.0.0:40100:21
-#      - 0.0.0.0:51100-51110:21000-21010
+#      - 0.0.0.0::21
+#      - 0.0.0.0::21000-21010
 
 # Volumes
 volumes:

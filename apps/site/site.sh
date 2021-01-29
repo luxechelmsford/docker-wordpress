@@ -18,29 +18,57 @@ dir=$(dirname "${this}")
 ##################################################################################################################
 help() {
   cat << EOF
-Managing website(s) interface
-  Usage: site [options]
-    [-a|add] ....................   Add the configuration of a new website 
-      <-n|--name=websiteName>         The secific website whose configration is to be added.
-      <-w|--web-url=url>              The web url e.g. www.example.com.
-                                      The wordpress site var is set to this
-                                      So any other urls are eventually redireded to this uRL 
-      [-u|--add-url=url]               The additional url, e.g. example.com
-    [-e|--edit] .................   Edit the configuration of an existing website
-      <-n|--name=websiteName>         The secific website whose configration is to be added.
-      [-w|--web-url=url]              The web url e.g. www.example.com.
-                                      The wordpress site var is set to this
-                                      So any other urls are eventually redireded to this uRL 
-      [-u|--add-url=url]              The additional url, e.g. example.com
-    [-v|--view] .................   View all site details ot the specified one
-      [-n|--name=websiteName]         The name of the site to be viewed. -n= will list all sites
-    [-d|--del] ..................   Delete the specified site detials
-      <-n|--name=websiteName>         The name of the site to be deleted
-    [-b|--build] ..............     Rebuild all site yamls - should be used when template files are changed
-      [-n|--name=websiteName]         The name of the site whose yaml to be rebuilt. -n= will rebuilt yaml for all sites
-    [-r|--remcont] ..............   Remove containers for all services that are disabled in the config
-      [-n|--name=websiteName]         The name of the site whose yaml to be rebuilt. -n= will rebuilt yaml for all sites
-    [-h|--help] .................   Display this help menu
+Managing a website configuration Interface
+  Format:
+	  site <command> [websiteName] [options=values]
+
+  Available commands and related options:
+    add ...........................   Add the configuration of a new website 
+			<websiteName>                     The secific website whose configration is to be added.
+			<-w|--web-url=url>                The web url e.g. www.example.com.
+																				The wordpress site var is set to this
+																				So any other urls are eventually redireded to this uRL 
+			[-u|--add-url=url]                The additional url, e.g. example.com
+		edit ..........................   Edit the configuration of an existing website
+			<websiteName>                     The secific website whose configration is to be edited.
+			[-w|--web-url=url]                The web url e.g. www.example.com.
+																				The wordpress site var is set to this
+																				So any other urls are eventually redireded to this uRL 
+			[-u|--add-url=url]                The additional url, e.g. example.com
+		view ..........................   View all site details ot the specified one
+			[websiteName]                     The secific website whose configration is to be displayed.
+																					Not passing this parameter would mean the configurations of all websites are to be displayed
+		del ...........................   Delete the specified site detials
+			<websiteName>                     The secific website whose configration is to deleted.
+		rebuild ......,................   Rebuild all site yamls - should be used when template files are changed
+			[websiteName]                     The secific website whose YML file is to be rebuilt.
+																					Not passing this parameter would mean YML files for all websites are to be rebuilt
+		remcont .......................   Remove containers for all services that are disabled in the config
+			[websiteName]                     The name of the site whose contaners are to be removed.
+																					Not passing this parameter would mean dsabled containers of all websites are to be removed
+    help ............................ Display this help menu
+
+  Example Usage
+	  Add configuration of a live website for domain example.com
+		  site add examp -w=www.example.com -u=example.com
+	  Add configuration of a test website for domain test.example.com
+			site add examp-test -w=test.example.com
+	  Edit the website url of the live site to www2.example.com
+		  site edit examp -w=www2.example.com
+	  Unset the domain url of the live site by setting the domian url to same as website url
+		  site edit examp -u=www2.example.com
+	  View the details of example.com and all website
+		  site view examp
+	  View the details of all websites
+		  site view
+	  Delete the test website examp-test
+		  site del examp-test
+	  Rebuild the yml file for examp-test
+		  site rebuild examp-test
+	  Rebuild the yml files for all websites
+		  site rebuild
+	  Display this help menu
+		  site help
 
 EOF
   exit 1
@@ -55,7 +83,6 @@ EOF
 # Return:       Stops and removes al disabled services .                                                        #
 #                                                                                                               #
 ##################################################################################################################
-
 function removeContainers() {
   
   # Script path
@@ -142,92 +169,49 @@ main() {
   local rootFolder=${scriptFolder%/*} # Go to parent folder
   local rootFolder=${rootFolder%/*}   # Now go to parent's parent folder
   local dataFile="${scriptFolder}/site.txt"
-
-  # Iterate through all arguments and find the command to be executed
-  local command=""
-  local options=()
-  for arg in "$@"; do 
-    case $arg in
-      -a|--add)
-        command=addSite
-        ;;
-      -e|--edit)
-        command=editSite
-       ;;
-      -v|--view)
-        command=viewSite
-        ;;
-      -d|--del)
-        command=delSite
-        ;;
-      -b|--build)
-        command=rebuildYmls
-        ;;
-      -r|--remcont)
-        command=removeContainers
-        ;;
-      -h|--help)
-        command=help
-        ;;
-      *)
-        # save as a potetial options to be iterated later
-        options+=("${arg}")
-    esac
-  done
-
-  if [ -z ${command} ]; then
+		
+	local command=$1
+  if [ -z "${command}" ]; then
     echo ""
-    echo "One of the following options must be specified to manage site(s)."
-    echo " [-a|--add] ..................   Add the configuration of a new website"
-    echo " [-e|--edit] .................   Edit the configuration of an existing website"
-    echo " [-v|--view] .................   View all site details ot the specified one's"
-    echo " [-d|--del] ..................   Delete the specified site detials"
-    echo " [-b|--build] ..............     Rebuild all site yamls - should be used when template files are changed"
-    echo " [-r|--remcont] ..............   Remove containers for all services that are disabled in the config"
-    echo " [-h|--help] .................   Display this help menu"
+    echo "One of the following command must be passed as 1st param to manage site(s)."
+    echo " add ..................   Add the configuration of a new website"
+    echo " edit .................   Edit the configuration of an existing website"
+    echo " view .................   View all site details ot the specified one's"
+    echo " del ..................   Delete the specified site detials"
+    echo " rebuild ..............   Rebuild all site yamls - should be used when template files are changed"
+    echo " remcont ..............   Remove containers for all services that are disabled in the config"
+    echo " help] .................  Display this help menu"
     echo ""
     echo ""
     exit 1;
   fi
+  shift # past the command
 
-  local cmdsOptionN=("addSite" "editSite" "viewSite"  "delSite" "rebuildYmls" "removeContainers")
-  local cmdsOptionW=("addSite" "editSite")
-  local cmdsOptionU=("addSite" "editSite")
+	local websiteName=$1
+  if [ -z ${websiteName} ]; then
+	  if [ "${websiteName}" == "add" ] || [ "${websiteName}" == "edit" ] || [ "${websiteName}" == "del" ]
+		then
+      echo ""
+      echo "Must sececify website name as 2nd parameter for commands add, edit anf del."
+      echo ""
+      exit 1;
+		fi
+  fi
+  shift # past the sitename
+
+  local cmdsOptionW=("add" "edit")
+  local cmdsOptionU=("add" "edit")
   
   # set the environment variables from the argument
   # iterate all but the last
 
   local option=""
-  local websiteName=""
   local websiteUrl=""
   local additionalUrl=""
   local unkownOption=""
-  for option in "${options[@]}"; do
+  for option in "$@"; do
     case $option in
-      -n=*|--name=*)
-        #if [[ " ${cmdsOptionN[@]} " =~ " ${command} " ]]; then
-        #  websiteName="${option#*=}"
-        #  shift # past option=value
-        #else
-        #  unkownOption="${option}"
-        #fi
-        case "${cmdsOptionN[@]}" in 
-          *"${command}"*)
-            websiteName="${option#*=}"
-            shift # past option=value
-            ;;
-          *)
-            unkownOption="${option}"
-            ;;
-        esac
-        ;;
       -w=*|--web-url=*)
-        #if [[ " ${cmdsOptionW[@]} " =~ " ${command} " ]]; then
-        #  websiteUrl="${option#*=}"
-        #  shift # past option=value
-        #else
-        #  unkownOption="${option}"
-        #fi
         case "${cmdsOptionW[@]}" in 
           *"${command}"*)
             websiteUrl="${option#*=}"
@@ -239,12 +223,6 @@ main() {
         esac
         ;;
       -u=*|--add-url=*)
-        #if [[ " ${cmdsOptionU[@]} " =~ " ${command} " ]]; then
-        #  additionalUrl="${option#*=}"
-        #  shift # past option=value
-        #else
-        #  unkownOption="${option}"
-        #fi
         case "${cmdsOptionU[@]}" in 
           *"${command}"*)
             additionalUrl="${option#*=}"
@@ -262,6 +240,7 @@ main() {
     esac
    
     if [ -n "${unkownOption}" ]; then
+      echo ""
       echo "Unknown option [${unkownOption}] found for ${command} command"
       echo "Use [-h|--help] for detailed argument list"
       echo ""
@@ -271,22 +250,8 @@ main() {
   done
 
   # Now handle any options not set for a specific command
-  local cmdsMandatoryOptionN=("addSite" "editSite" "delSite" "removeContainers")
-  local cmdsMandatoryOptionW=("addSite")
+  local cmdsMandatoryOptionW=("add")
   local cmdsMandatoryOptionU=("")
- 
-  # Check the Site Name is set for all commnads that specifies it as a mandatory option
-  case "${cmdsMandatoryOptionN[@]}" in  *"${command}"*)
-    #if [[ " ${cmdsMandatoryOptionN[@]} " =~ " ${command} " ]] && [ -z "${websiteName}" ]; then
-    if [ -z "${websiteName}" ]; then
-      echo "A website name must be specified using <-n|--name=siteName> for [${command}] command"
-      echo "Use [-h|--help] for detailed argument list"
-      echo ""
-      echo ""
-      exit 1;
-    fi
-    ;;
-  esac
  
   # Check the Web Server URL is set for all commnads that specifies it as a mandatory option
   case "${cmdsMandatoryOptionW[@]}" in  *"${command}"*)
@@ -316,22 +281,22 @@ main() {
   
   # Run the command
   case $command in
-    addSite)
+    add)
         addSiteRecord "${rootFolder}" "${scriptFolder}" "${dataFile}" "${websiteName}" "${websiteUrl}" "${additionalUrl}"
         ;;
-    editSite)
+    edit)
         editSiteRecord "${rootFolder}" "${scriptFolder}" "${dataFile}" "${websiteName}" "${websiteUrl}|${additionalUrl}"
        ;;
-    viewSite)
+    view)
         viewSiteRecord "${rootFolder}" "${scriptFolder}" "${dataFile}" "${websiteName}"
         ;;
-    delSite)
+    del)
         delSiteRecord "${rootFolder}" "${scriptFolder}" "${dataFile}" "${websiteName}" ""
         ;;
-    rebuildYmls)
+    rebuild)
         rebuildYmls "${rootFolder}" "${scriptFolder}" "${dataFile}"
         ;;
-		removeContainers)
+		remcont)
 		    removeContainers "${scriptFolder}" "${websiteName}"
         ;;
     help)
