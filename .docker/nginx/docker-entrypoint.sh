@@ -87,7 +87,7 @@ fi
 
 
 # Copy phpmyadmin.conf
-if [-n "${PHPMYADMIN_ENABLED}" ] && [ "${PHPMYADMIN_ENABLED}" == "yes" ]
+if [ -n "${PHPMYADMIN_ENABLED}" ] && [ "${PHPMYADMIN_ENABLED}" == "yes" ]
 then
 	if [ ! -f "/etc/nginx/conf.d/phpmyadmin.conf" ]
 	then
