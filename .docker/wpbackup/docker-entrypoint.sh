@@ -108,10 +108,8 @@ EOF
   # Lets get into a loop until
 	#   1. Database is not empty, or
 	#   2. WPBACKUP_RESTORE_KEY env variable is not set, or
-	#   3. WPBACKUP_RESTORE_KEY does not exist and we tried 20 times, or
-	#   4  Restore Key file does not point to any file, or
-	#   5. restore file is defined and it exists 
-	retryRestoreKey=0; restoreFile=""; wpcustomFile="";
+	#   3. Restore Key file does not point to any file, or
+	#   4. Restore file is defined and it exists 
 	echo "Checking if we need to restore from a previous backup ..."
 	while true
 	do
@@ -140,13 +138,7 @@ EOF
 		then
   		echo "Restore key file does not exist as yet."
 	  	echo "May be it is yet to be synchronised with remote mount, lets wait ...";
-		  if [ "${retryRestoreKey}" == "20" ]; then
-			  echo "The restore key file [${restoreKeyFile}] does not exist"
-			  echo "Restore will be skipped"
-			  break;
-			fi
   		sleep 60 # sleep for 60 seconds
-	  	retryRestoreKey=$((retryRestoreKey+1))
 		  continue;
 		fi
 
