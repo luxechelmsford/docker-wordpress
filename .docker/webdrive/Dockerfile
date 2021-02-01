@@ -3,8 +3,10 @@ FROM ubuntu:20.04
 LABEL maintainer "Richard Regeer" \
       email="rich2309@gmail.com"
 
-RUN apt-get update \
-  && apt-get install -y davfs2 ca-certificates unison \
+ARG DEBIAN_FRONTEND=noninteractive
+
+RUN apt-get update && apt-get install -yq --no-install-recommends apt-utils \
+  && apt-get install -yq davfs2 ca-certificates unison \
   && apt-get install gettext-base \
   && mkdir -p /mnt/webdrive \
   && apt-get clean \

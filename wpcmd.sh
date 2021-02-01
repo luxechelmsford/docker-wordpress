@@ -88,9 +88,9 @@ build () {
   # Image name
   local imageName=$1
   if [ -n "$imageName" ]  && [ "$imageName" != "mysql" ]  && [ "$imageName" != "nginx" ]  \
-     &&   [ "$imageName" != "wpbackup" ] && [ "$imageName" != "webdrive" ] # && [ "$imageName" != "vsftpd" ]
+     &&   [ "$imageName" != "wpbackup" ] && [ "$imageName" != "webdrive" ] [ "$imageName" != "vsftpd" ]
   then
-    echo "Invalid image name [$imageName] passed. Valid values are <blank>, mysql, nginx, wpbackup and webdrive"
+    echo "Invalid image name [$imageName] passed. Valid values are <blank>, mysql, nginx, wpbackup, webdrive and vsftpd"
     echo ""
     echo ""
     exit 1;

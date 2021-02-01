@@ -157,7 +157,7 @@ echo "Setting Wordpress specific file permissions ..."
 echo "Setting ownership to www-data ..."
 # Use 82 for gid/uid and not www-data, as they have uid/gid 33 in ubunti 20.04
 # Hence use www-data will make wp-content in assisible to wordpress and nginx services which run of www-data
-find "${WPBACKUP_WPCONTENT_DIR}" -exec chown 82:82 {} \;  
+find "${WPBACKUP_WPCONTENT_DIR}" -exec chown 82:82 {} \;
 echo "Setting group to www-data ..."
 find "${WPBACKUP_WPCONTENT_DIR}" -exec chgrp 82 {} \;
 echo "Setting directory permission to 775 ..."

@@ -54,6 +54,8 @@ else
 			  rm -f "/var/run/mount.davfs/${webDrivePidFile}.pid";
 			fi
 			# Mount the webdrive please note ${WEBDRIVE_ROOT_DIR%/*} would remove the top level subdir
+			echo "Waiting for network services to be up and running ...	"
+			sleep 120
 			echo "Mounting the webdrive ..."
 			echo "y" | mount -t davfs "$WEBDRIVE_URL" "${WEBDRIVE_ROOT_DIR%/*}" -o uid=0,gid=users,dir_mode=755,file_mode=755
 			echo "" # Blank echo to over to the next line
