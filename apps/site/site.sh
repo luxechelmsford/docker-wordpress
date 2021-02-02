@@ -242,7 +242,9 @@ main() {
     if [ -n "${unkownOption}" ]; then
       echo ""
       echo "Unknown option [${unkownOption}] found for ${command} command"
-      echo "Use [-h|--help] for detailed argument list"
+			if [ "${unkownOption:0:1}" != "-" ]; then echo "    Are you misisng a '-' at the start of the option"; fi
+			if [[ $unkownOption != *"="* ]]; then echo "    Are you misisng a '=' between the option and its value"; fi
+      echo "    Use [-h|--help] for detailed argument list"
       echo ""
       echo ""
       exit 1;
