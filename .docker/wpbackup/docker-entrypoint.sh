@@ -24,7 +24,24 @@ else
 
 	if [ ! -d "${WPBACKUP_ROOT_DIR}" ]; then mkdir -p "${WPBACKUP_ROOT_DIR}"; fi
 	if [ ! -d "${WPBACKUP_LOG_DIR}" ]; then mkdir -p "${WPBACKUP_LOG_DIR}"; fi
-	
+
+	# Create the restore sub folder, if it does not exists
+	restorePath="${WPBACKUP_ROOT_DIR}/restore" 
+	if [ ! -d "${restorePath}" ]
+	then
+		mkdir -p "${restorePath}"
+		echo "Restore directory [${restorePath}] created successfully"
+	fi
+
+	# Create the backup sub folder, if it does not exists
+	backupPath="${WPBACKUP_ROOT_DIR}/backup" 
+	if [ ! -d "${backupPath}" ]
+	then
+		mkdir -p "${backupPath}"
+		echo "Backup directory [${backupPath}] created successfully"
+	fi
+
+
 	# First create the cron job
 	WPBACKUP_ENABLED="${WPBACKUP_ENABLED:-"yes"}"
 	if [ ! -f "/etc/wpbackup-cron" ]
@@ -133,7 +150,7 @@ EOF
 		fi
 
     # Check if the restore key is deifned and the file actually exists
-		restoreKeyFile="${WPBACKUP_ROOT_DIR}/${WPBACKUP_RESTORE_KEY}"
+		restoreKeyFile="${restorePath}/${WPBACKUP_RESTORE_KEY}"
 		if [ ! -f "${restoreKeyFile}" ]
 		then
   		echo "Restore key file does not exist as yet."
@@ -153,7 +170,7 @@ EOF
 		fi
 
 		# Check the existenece of the restore file
-    restoreFile="${WPBACKUP_ROOT_DIR}/${restoreFilename}"
+    restoreFile="${restorePath}/${restoreFilename}"
 		if [ ! -f "${restoreFile}" ]
 		then
 			echo "The restore file [${restoreFile}] does not exist as yet."
@@ -164,11 +181,11 @@ EOF
 
     echo "Restore file [${restoreFile}] found."
 		# Lets check the wpcustom file
-		wpbackupKeyFile="${WPBACKUP_ROOT_DIR}/${WPBACKUP_WPCUSTOM_KEY}"
+		wpbackupKeyFile="${restorePath}/${WPBACKUP_WPCUSTOM_KEY}"
 		if [ -n "${WPBACKUP_WPCUSTOM_KEY}" ] && [ -f "${wpbackupKeyFile}" ]
 		then
 			wpcustomFilename="$(<"${wpbackupKeyFile}")"
-			wpcustomFile="${WPBACKUP_ROOT_DIR}/${wpcustomFilename}"
+			wpcustomFile="${restorePath}/${wpcustomFilename}"
 			if [ -n "${wpcustomFilename}" ] && [ -f "${wpcustomFile}" ]
 			then
 				echo "wpcustom file [${wpcustomFile}] found."
@@ -196,15 +213,15 @@ EOF
 			then
 				echo "WORDPRESS is restored SUCCESSFULLY"
 				echo "Please check the logs at [${WPBACKUP_LOG_DIR}/restore-${NOW}.log]"
-				# Delete the restore file, as we are done with it
-				# Otherwise it will try and restore this again, when this container is recreated
-				echo "Deleting restore key file [${restoreKeyFile}]."
-				if rm -f "${restoreKeyFile}"
-				then
-					echo "Restore key file [${restoreKeyFile}] deleted successfully."
-				else
-					echo "Failed to delete restore file [${restoreKeyFile}]."
-				fi
+#				# Delete the restore file, as we are done with it
+#				# Otherwise it will try and restore this again, when this container is recreated
+#				echo "Deleting restore key file [${restoreKeyFile}]."
+#				if rm -f "${restoreKeyFile}"
+#				then
+#					echo "Restore key file [${restoreKeyFile}] deleted successfully."
+#				else
+#					echo "Failed to delete restore file [${restoreKeyFile}]."
+#				fi
 			else
 				echo "Failed to restore wordpress from:"
 				echo "Backup file:   [${restoreFile}]"
@@ -214,16 +231,16 @@ EOF
 				echo "Please check the logs at [${WPBACKUP_LOG_DIR}/restore-${NOW}.log]"
 			fi
 			unset NOW
-		else
-			# Delete the restore file, as we are done with it
-			# Otherwise it will try and restore this again, when this container is recreated
-			echo "Deleting restore key file [${restoreKeyFile}]."
-			if rm -f "${restoreKeyFile}"
-			then
-				echo "Restore key file [${restoreKeyFile}] deleted successfully."
-			else
-				echo "Failed to delete restore file [${restoreKeyFile}]."
-			fi
+#		else
+#			# Delete the restore file, as we are done with it
+#			# Otherwise it will try and restore this again, when this container is recreated
+#			echo "Deleting restore key file [${restoreKeyFile}]."
+#			if rm -f "${restoreKeyFile}"
+#			then
+#				echo "Restore key file [${restoreKeyFile}] deleted successfully."
+#			else
+#				echo "Failed to delete restore file [${restoreKeyFile}]."
+#			fi
 		fi
 	fi
 fi

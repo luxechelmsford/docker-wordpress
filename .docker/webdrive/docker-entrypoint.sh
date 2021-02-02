@@ -15,102 +15,207 @@ else
 	if [ -z "${WEBDRIVE_ROOT_DIR}" ];     then echo "Error: WEBDRIVE_ROOT_DIR not set";     echo "Finished: FAILURE"; exit 1; fi
 	if [ -z "${WPBACKUP_ROOT_DIR}" ];     then echo "Error: WPBACKUP_ROOT_DIR not set";     echo "Finished: FAILURE"; exit 1; fi
 	
-	# Create the remote sub folder, if it does not exists
-	if [ ! -d "${WEBDRIVE_ROOT_DIR}" ]
+	# Create the remote restore folder, if it does not exists
+	remoteRestorePath="${WEBDRIVE_ROOT_DIR}/restore" 
+	if [ ! -d "${remoteRestorePath}" ]
 	then
-		mkdir -p "${WEBDRIVE_ROOT_DIR}"
-		echo "Remote directory [${WEBDRIVE_ROOT_DIR}] created successfully"  
+		mkdir -p "${remoteRestorePath}"
+		echo "Remote restore folder [${remoteRestorePath}] created successfully"  
 	fi
 
-	# Create the local sub folder, if it does not exists
-	if [ ! -d "${WPBACKUP_ROOT_DIR}" ]
+  # Create the remote backup folder, if it does not exists
+	remoteBackupPath="${WEBDRIVE_ROOT_DIR}/backup" 
+	if [ ! -d "${remoteBackupPath}" ]
 	then
-		mkdir -p "${WPBACKUP_ROOT_DIR}"
-		echo "Local directory [${WPBACKUP_ROOT_DIR}] created successfully"
+		mkdir -p "${remoteBackupPath}"
+		echo "Remote backup folder [${remoteBackupPath}] created successfully"  
 	fi
 
-	# Copy webdrive mapping entry
-	webdriveRemoteUrl="${WEBDRIVE_URL%/}/${WEBDRIVE_ROOT_DIR##*/}"
-	fstabEntry="${webdriveRemoteUrl} ${WEBDRIVE_ROOT_DIR} davfs _netdev,noauto,user,uid=0,gid=0, 0 0"
-	if grep -qxF "${fstabEntry}" "/etc/fstab"
+	# Create the local restore sub folder, if it does not exists
+	localRestorePath="${WPBACKUP_ROOT_DIR}/restore" 
+	if [ ! -d "${localRestorePath}" ]
 	then
-		echo "The webdrive mapping entry had been copied to fstab file in the previous run"
+		mkdir -p "${localRestorePath}"
+		echo "Local restore directory [${localRestorePath}] created successfully"
+	fi
+
+	# Create the local backup sub folder, if it does not exists
+	localBackupPath="${WPBACKUP_ROOT_DIR}/backup" 
+	if [ ! -d "${localBackupPath}" ]
+	then
+		mkdir -p "${localBackupPath}"
+		echo "Local backup directory [${localBackupPath}] created successfully"
+	fi
+
+	# Copy restore webdrive mapping entry
+	webdriveRemoteRestoreUrl="${WEBDRIVE_URL%/}/${WEBDRIVE_ROOT_DIR##*/}/${remoteRestorePath##*/}"
+	fstabRestoreEntry="${webdriveRemoteRestoreUrl} ${remoteRestorePath} davfs _netdev,noauto,user,uid=0,gid=0, 0 0"
+	if grep -qxF "${fstabRestoreEntry}" "/etc/fstab"
+	then
+		echo "The restore webdrive mapping entry had been copied to fstab file in the previous run"
 	else
-		echo "Copying the webdrive mapping entry to fstab file ..."
-		if echo "${fstabEntry}"  >> "/etc/fstab"
+		echo "Copying the restore webdrive mapping entry to fstab file ..."
+		if echo "${fstabRestoreEntry}"  >> "/etc/fstab"
 		then
-			echo "The webdrive mapping entry copied to fstab file successfully"
+			echo "The restore webdrive mapping entry copied to fstab file successfully"
 		else
-			echo "Failed to copy webdrive mapping entry to fstab file"
+			echo "Failed to copy restore webdrive mapping entry to fstab file"
 		fi
 	fi
 
-  # Copy webdrive secrets
-	davfs2Credential="${WEBDRIVE_ROOT_DIR} ${WEBDRIVE_UID} ${WEBDRIVE_PWD}"
-	if grep -qxF "${davfs2Credential}" "/etc/davfs2/secrets"
+	# Copy backup webdrive mapping entry
+	webdriveRemoteBackupUrl="${WEBDRIVE_URL%/}/${WEBDRIVE_ROOT_DIR##*/}/${remoteBackupPath##*/}"
+	fstabBackupEntry="${webdriveRemoteBackupUrl} ${remoteBackupPath} davfs _netdev,noauto,user,uid=0,gid=0, 0 0"
+	if grep -qxF "${fstabBackupEntry}" "/etc/fstab"
 	then
-		echo "The webdrive credentials had been copied to davfs2 secrets file in the previous run"
+		echo "The backup webdrive mapping entry had been copied to fstab file in the previous run"
 	else
-		echo "Copying the webdrive credentials to davfs2 secrets file ..."
-		if echo "${davfs2Credential}"  >> "/etc/davfs2/secrets"
+		echo "Copying the backup webdrive mapping entry to fstab file ..."
+		if echo "${fstabBackupEntry}"  >> "/etc/fstab"
 		then
-			echo "The webdrive credentials copied to davfs2 secrets file successfully"
+			echo "The backup webdrive mapping entry copied to fstab file successfully"
 		else
-			echo "Failed to copy webdrive credentials to davfs2 secrets file"
+			echo "Failed to copy backup webdrive mapping entry to fstab file"
 		fi
 	fi
 
-	# Mount the drive
-	if ! grep -qxF "${fstabEntry}" "/etc/fstab"
+  # Copy restore webdrive secrets
+	davfs2RestoreCredential="${remoteRestorePath} ${WEBDRIVE_UID} ${WEBDRIVE_PWD}"
+	if grep -qxF "${davfs2RestoreCredential}" "/etc/davfs2/secrets"
+	then
+		echo "The restore webdrive credentials had been copied to davfs2 secrets file in the previous run"
+	else
+		echo "Copying the restore webdrive credentials to davfs2 secrets file ..."
+		if echo "${davfs2RestoreCredential}"  >> "/etc/davfs2/secrets"
+		then
+			echo "The restore webdrive credentials copied to davfs2 secrets file successfully"
+		else
+			echo "Failed to copy restore webdrive credentials to davfs2 secrets file"
+		fi
+	fi
+
+  # Copy backup webdrive secrets
+	davfs2BackupCredential="${remoteBackupPath} ${WEBDRIVE_UID} ${WEBDRIVE_PWD}"
+	if grep -qxF "${davfs2BackupCredential}" "/etc/davfs2/secrets"
+	then
+		echo "The backup webdrive credentials had been copied to davfs2 secrets file in the previous run"
+	else
+		echo "Copying the backup webdrive credentials to davfs2 secrets file ..."
+		if echo "${davfs2BackupCredential}"  >> "/etc/davfs2/secrets"
+		then
+			echo "The backup webdrive credentials copied to davfs2 secrets file successfully"
+		else
+			echo "Failed to copy backup webdrive credentials to davfs2 secrets file"
+		fi
+	fi
+
+	# Mount the restore drive
+	if ! grep -qxF "${fstabRestoreEntry}" "/etc/fstab"
 	then
 		echo "Skipping the mounting of the web drive. Webdrive mapping entry not found in the fstab file"
-	elif ! grep -qxF "${davfs2Credential}" "/etc/davfs2/secrets"
+	elif ! grep -qxF "${davfs2RestoreCredential}" "/etc/davfs2/secrets"
 	then
 		echo "Skipping the mounting of the web drive. Webdrive credentials not found in the secrets file"
 	else
 		# Check if the webdrive is mounted
-		driveType=$(stat --file-system --format=%T "${WEBDRIVE_ROOT_DIR}");
+		driveType=$(stat --file-system --format=%T "${remoteRestorePath}");
 		if [ "${driveType}" == "fuseblk" ]
 		then
 			echo "WEBDRIVE has ALREADY been mounted"
 		else			  
 			# Webdav on a reboot complain about unable to mount as found PID file /var/run/mount.davfs/mnt-webdrive.pid.
 			# lets first delete this file
-			webDrivePidFile="${WEBDRIVE_ROOT_DIR#/}"		# Remove the first slash
-			webDrivePidFile="${webDrivePidFile//\//-}"	# Replace slashed with - to get the pid file name
-			if [ -f "/var/run/mount.davfs/${webDrivePidFile}.pid" ]
+			webDriveRestorePidFile="${remoteRestorePath#/}"		# Remove the first slash
+			webDriveRestorePidFile="${webDriveRestorePidFile//\//-}"	# Replace slashed with - to get the pid file name
+			if [ -f "/var/run/mount.davfs/${webDriveRestorePidFile}.pid" ]
 			then
-			  echo "Removing the pid file created from previously running the container"
-			  rm -f "/var/run/mount.davfs/${webDrivePidFile}.pid";
+			  echo "Removing the restore pid file created from previously running the container"
+			  rm -f "/var/run/mount.davfs/${webDriveRestorePidFile}.pid";
 			fi
 			# Mount the webdrive
-			echo "Mounting the webdrive ..."
-			ret=$(echo "y" | mount "${WEBDRIVE_ROOT_DIR}" |& grep '404 Not Found')
+			echo "Mounting the restore webdrive ..."
+			ret=$(echo "y" | mount "${remoteRestorePath}" |& grep '404 Not Found')
 			if [ -n "${ret}" ]
 			then
 			  echo "FAILED to mount the drive!!"
-				echo "Ensure the subfolder ${WEBDRIVE_ROOT_DIR##*/} exist as a share on the webdav server"
+				echo "Ensure the subfolder ${WEBDRIVE_ROOT_DIR##*/}/${remoteRestorePath##*/} exist as a share on the webdav server"
 			else
 				echo "" # Blank echo to over to the next line
-				driveType=$(	stat --file-system --format=%T "${WEBDRIVE_ROOT_DIR}");
+				driveType=$(	stat --file-system --format=%T "${remoteRestorePath}");
 				if [ "${driveType}" == "fuseblk" ]
 				then
-					echo "WEBDRIVE mounted SUCCESSFULLY"
+					echo "Restore WEBDRIVE mounted SUCCESSFULLY"
 				else
-					echo "FAILED to mount the WEBDRIVE"
+					echo "FAILED to mount the Restore WEBDRIVE"
 				fi
 			fi
 		fi
 	fi
 
-	driveType=$(stat --file-system --format=%T "${WEBDRIVE_ROOT_DIR}");
-	if [ "${driveType}" == "fuseblk" ]
+  # Mount the backup drive
+	if ! grep -qxF "${fstabBackupEntry}" "/etc/fstab"
 	then
-		echo "Getting the directory listing of the webdrive ..."
-		ls "${WEBDRIVE_ROOT_DIR}"
+		echo "Skipping the mounting of the web drive. Webdrive mapping entry not found in the fstab file"
+	elif ! grep -qxF "${davfs2BackupCredential}" "/etc/davfs2/secrets"
+	then
+		echo "Skipping the mounting of the web drive. Webdrive credentials not found in the secrets file"
+	else
+		# Check if the webdrive is mounted
+		driveType=$(stat --file-system --format=%T "${remoteBackupPath}");
+		if [ "${driveType}" == "fuseblk" ]
+		then
+			echo "WEBDRIVE has ALREADY been mounted"
+		else			  
+			# Webdav on a reboot complain about unable to mount as found PID file /var/run/mount.davfs/mnt-webdrive.pid.
+			# lets first delete this file
+			webDriveBackupPidFile="${remoteBackupPath#/}"		# Remove the first slash
+			webDriveBackupPidFile="${webDriveBackupPidFile//\//-}"	# Replace slashed with - to get the pid file name
+			if [ -f "/var/run/mount.davfs/${webDriveBackupPidFile}.pid" ]
+			then
+			  echo "Removing the backup pid file created from previously running the container"
+			  rm -f "/var/run/mount.davfs/${webDriveBackupPidFile}.pid";
+			fi
+			# Mount the webdrive
+			echo "Mounting the backup webdrive ..."
+			ret=$(echo "y" | mount "${remoteBackupPath}" |& grep '404 Not Found')
+			if [ -n "${ret}" ]
+			then
+			  echo "FAILED to mount the drive!!"
+				echo "Ensure the subfolder ${WEBDRIVE_ROOT_DIR##*/}/${remoteBackupPath##*/} exist as a share on the webdav server"
+			else
+				echo "" # Blank echo to over to the next line
+				driveType=$(	stat --file-system --format=%T "${remoteBackupPath}");
+				if [ "${driveType}" == "fuseblk" ]
+				then
+					echo "Backup WEBDRIVE mounted SUCCESSFULLY"
+				else
+					echo "FAILED to mount the Backup WEBDRIVE"
+				fi
+			fi
+		fi
+	fi
+
+	driveRestoreType=$(stat --file-system --format=%T "${remoteRestorePath}");
+	driveBackupType=$(stat --file-system --format=%T "${remoteBackupPath}");
+	if [ "${driveRestoreType}" == "fuseblk" ] && [ "${driveBackupType}" == "fuseblk" ]
+	then
+		echo "Getting the restore directory listing for the webdrive ..."
+		ls "${remoteRestorePath}"
+		echo "Getting the restore directory listing for the webdrive ..."
+		ls "${remoteBackupPath}"
 		echo "Starting unison process ..."
 		# Start the endless sync process
-		unison "${WEBDRIVE_ROOT_DIR}" "${WPBACKUP_ROOT_DIR}"
+		while (true)
+		do
+			echo ""
+		  # Oneway sync from local to remote
+			echo "[$(date +"%Y-%m-%d-%H%M%S")] Syncing local backup -> remote backup"
+  		unison "${localBackupPath}" "${remoteBackupPath}" -force "${localBackupPath}" -nodeletion "${remoteBackupPath}"
+		  # Oneway sync from remote to local
+			echo "[$(date +"%Y-%m-%d-%H%M%S")] Syncing local restore <- remote restore"
+  		unison "${remoteRestorePath}" "${localRestorePath}" -force "${remoteRestorePath}"
+			sleep 60
+		done
 	else
 		echo "Skiping unison process and starting interctive shell ..."
     tail -f /dev/null

@@ -14,7 +14,6 @@ if [ -z "${MYSQL_ROOT_CNF_FILE}" ];    then echo "Error: MYSQL_ROOT_CNF_FILE not
 if [ !  "${MYSQL_USER_CNF_FILE}" ];    then echo "Error: [${MYSQL_USER_CNF_FILE}] does not exist"; echo "Finished: FAILURE"; exit 1; fi
 if [ !  "${MYSQL_ROOT_CNF_FILE}" ];    then echo "Error: [${MYSQL_ROOT_CNF_FILE}] does not exist"; echo "Finished: FAILURE"; exit 1; fi
 
-
 # Read the command line args. Expected parameters are:
 # <$1>  Mandatory, the backup tar file to be restored from
 # [$2]  Optional,  the wpcustom zip file to be copied on the deafult wordpress content

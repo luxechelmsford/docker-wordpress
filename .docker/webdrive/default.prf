@@ -9,6 +9,7 @@ times = true
 owner = true
 group = true
 prefer = newer
+confirmbigdel = false
 
 # Ignore 
 ignore = Name temp.*
@@ -17,4 +18,5 @@ ignore = Name *.tmp
 ignore = Path lost+found
 
 # Daemonize 
-repeat = 60
+#watch = false
+#repeat = 60

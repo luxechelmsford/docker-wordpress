@@ -13,6 +13,14 @@ if [ -z "${WPBACKUP_ROOT_DIR}" ];      then echo "Error: WPBACKUP_ROOT_DIR not s
 if [ -z "${MYSQL_USER_CNF_FILE}" ];    then echo "Error: MYSQL_USER_CNF_FILE not set";             echo "Finished: FAILURE"; exit 1; fi
 if [ !  "${MYSQL_USER_CNF_FILE}" ];    then echo "Error: [${MYSQL_USER_CNF_FILE}] does not exist"; echo "Finished: FAILURE"; exit 1; fi
 
+# Create the backup sub folder, if it does not exists
+backupPath="${WPBACKUP_ROOT_DIR}/backup" 
+if [ ! -d "${backupPath}" ]
+then
+	mkdir -p "${backupPath}"
+	echo "Backup directory [${backupPath}] created successfully"
+fi
+
 
 # First find out the type of backup, ie. if user passes a value its adhoc
 # else it is called from cron job and its its either monthly, weekly and daily
@@ -43,7 +51,7 @@ mysqldump --add-drop-table --no-tablespaces --user="${WPBACKUP_DB_USER}" "${WPBA
 # And compress the whole archive.
 tar --append --file="${TEMP_DIR}/${TR_FILENAME}" --transform "${DB_TRANSFORM}" "${TEMP_DIR}/${DB_FILENAME}"
 gzip -9 "${TEMP_DIR}/${TR_FILENAME}"
-mv "${TEMP_DIR}/${TR_FILENAME}.gz" "${WPBACKUP_ROOT_DIR}/"
+mv "${TEMP_DIR}/${TR_FILENAME}.gz" "${backupPath}/"
 
 # If we have a dropbox token passed in the fle
 if [ -z "${WPBACKUP_DROPBOX_TOKEN}" ]
@@ -84,17 +92,17 @@ rm "${TEMP_DIR}/${DB_FILENAME}"
 if [ -n "${WP_CLEAN_DAILY_DAYS}" ]
 then
   echo "Deleting daily backup files older than ${WP_CLEAN_DAILY_DAYS} days"
-  find "${WPBACKUP_ROOT_DIR}" -name "${WPBACKUP_WEBSITE}-daily*"  -type f -mtime "+${WP_CLEAN_DAILY_DAYS}" -delete
+  find "${backupPath}" -name "${WPBACKUP_WEBSITE}-daily*"  -type f -mtime "+${WP_CLEAN_DAILY_DAYS}" -delete
 fi
 if [ -n "${WP_CLEAN_WEEKLY_DAYS}" ]
 then
   echo "Deleting weekly backup files older than ${WP_CLEAN_WEEKLY_DAYS} days"
-  find "${WPBACKUP_ROOT_DIR}" -name "${WPBACKUP_WEBSITE}-weekly*"  -type f -mtime "+${WP_CLEAN_WEEKLY_DAYS}" -delete
+  find "${backupPath}" -name "${WPBACKUP_WEBSITE}-weekly*"  -type f -mtime "+${WP_CLEAN_WEEKLY_DAYS}" -delete
 fi
 if [ -n "${WP_CLEAN_MONTHLY_DAYS}" ]
 then
   echo "Deleting monthly backup files older than ${WP_CLEAN_MONTHLY_DAYS} days"
-  find "${WPBACKUP_ROOT_DIR}" -name "${WPBACKUP_WEBSITE}-monthly*"  -type f -mtime "+${WP_CLEAN_MONTHLY_DAYS}" -delete
+  find "${backupPath}" -name "${WPBACKUP_WEBSITE}-monthly*"  -type f -mtime "+${WP_CLEAN_MONTHLY_DAYS}" -delete
 fi
 
 echo "[$(date +"%Y-%m-%d-%H%M%S")] Exiting wpbackup backup script ..."
