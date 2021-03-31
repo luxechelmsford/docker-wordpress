@@ -212,26 +212,20 @@ main() {
   for option in "$@"; do
     case $option in
       -w=*|--web-url=*)
-        case "${cmdsOptionW[@]}" in 
-          *"${command}"*)
-            websiteUrl="${option#*=}"
-            shift # past option=value
-            ;;
-          *)
-            unkownOption="${option}"
-            ;;
-        esac
+				if [[ " ${cmdsOptionW[@]} " =~ " ${command} " ]]; then
+          websiteUrl="${option#*=}"
+          shift # past option=value
+				else
+          unkownOption="${option}"
+				fi
         ;;
       -u=*|--add-url=*)
-        case "${cmdsOptionU[@]}" in 
-          *"${command}"*)
-            additionalUrl="${option#*=}"
-            shift # past option=value
-            ;;
-          *)
-            unkownOption="${option}"
-            ;;
-        esac
+				if [[ " ${cmdsOptionU[@]} " =~ " ${command} " ]]; then
+          additionalUrl="${option#*=}"
+          shift # past option=value
+				else
+          unkownOption="${option}"
+				fi
         ;;
       *)
         # Unknown option
