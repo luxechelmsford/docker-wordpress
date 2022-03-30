@@ -14,17 +14,17 @@ services:
 
   # MySQL Service
   mysql:
-    container_name:                   demo-mysql
-    image:                            thetek/mysql:8.0.22
+    container_name:                   ${WEBSITE_NAME}-mysql
+    image:                            ${MYSQL_IMAGE}
     restart:                          always
     working_dir:                      /var/lib/mysql
     environment:
-      MYSQL_PORT:                     3306
-      MYSQL_HOST:                     mysql
-      MYSQL_DATABASE:                 demo
-      MYSQL_USER:                     demo
-      MYSQL_ROOT_PASSWORD:            mysqlrootpassword
-      MYSQL_PASSWORD:                 mysqluserpassword
+      MYSQL_PORT:                     ${MYSQL_PORT}
+      MYSQL_HOST:                     ${MYSQL_HOST}
+      MYSQL_DATABASE:                 ${MYSQL_DATABASE}
+      MYSQL_USER:                     ${MYSQL_USER}
+      MYSQL_ROOT_PASSWORD:            ${MYSQL_ROOT_PASSWORD}
+      MYSQL_PASSWORD:                 ${MYSQL_PASSWORD}
     volumes:
       - mysql-data-volume:/var/lib/mysql
       - mysql-conf-volume:/etc/mysql/conf.d
@@ -34,23 +34,24 @@ services:
 
   # Wordpress Service
   wordpress:
-    container_name:                   demo-wordpress
-    image:                            wordpress:5.6.0-php7.4-fpm-alpine
+    container_name:                   ${WEBSITE_NAME}-wordpress
+    image:                            ${WORDPRESS_IMAGE}
     restart:                          always
-    working_dir:                      /var/www/html
+    working_dir:                      ${WORDPRESS_ROOT_DIR}
     environment:
       # Do not add host here, it causes the error - mysqli::__construct(): (HY000/2002)
-      #WORDPRESS_DB_HOST:             mysql
-      WORDPRESS_DB_NAME:              demo
-      WORDPRESS_DB_USER:              demo
-      WORDPRESS_DB_PASSWORD:          mysqluserpassword
-      WORDPRESS_TABLE_PREFIX:         wp_
+      # 2022-03-30 Now it seems to be fine with the host name in
+      WORDPRESS_DB_HOST:             ${MYSQL_HOST}
+      WORDPRESS_DB_NAME:              ${MYSQL_DATABASE}
+      WORDPRESS_DB_USER:              ${MYSQL_USER}
+      WORDPRESS_DB_PASSWORD:          ${MYSQL_PASSWORD}
+      WORDPRESS_TABLE_PREFIX:         ${WORDPRESS_TABLE_PREFIX}
       WORDPRESS_CONFIG_EXTRA: |
-        define( 'WP_HOME', 'http://www.example.com' );
-        define( 'WP_SITEURL', 'http://www.example.com' );
+        define( 'WP_HOME', '${WORDPRESS_HOME}' );
+        define( 'WP_SITEURL', '${WORDPRESS_SITEURL}' );
         define( 'FS_METHOD', 'direct');
     volumes:
-      - wordpress-data-volume:/var/www/html
+      - wordpress-data-volume:${WORDPRESS_ROOT_DIR}
       - log-data-volume:/var/log
     depends_on:
       - mysql
@@ -59,44 +60,44 @@ services:
 
   # PhpMyAdmin Service
   phpmyadmin:
-    container_name:                   demo-phpmyadmin
+    container_name:                   ${WEBSITE_NAME}-phpmyadmin
     image:                            phpmyadmin/phpmyadmin:5.0.0-fpm-alpine 
-    restart:                          "no"
-    working_dir:                      /var/www/phpmyadmin
+    restart:                          always
+    working_dir:                      ${PHPMYADMIN_ROOT_DIR}
     environment:
-      PHPMYADMIN_ENABLED:            "yes"
+      PHPMYADMIN_ENABLED:            "${PHPMYADMIN_ENABLED}"
       PMA_HOST:                       mysql
     volumes:
-      - phpmyadmin-data-volume:/var/www/phpmyadmin
+      - phpmyadmin-data-volume:${PHPMYADMIN_ROOT_DIR}
       - log-data-volume:/var/log
     depends_on:
       - mysql
 
   # Nginx Service
   nginx:
-    container_name:                  demo-nginx
+    container_name:                  ${WEBSITE_NAME}-nginx
     image:                           thetek/nginx:1.17-alpine
     restart:                         always
     working_dir:                     /etc/nginx
     environment:
-      LETSENCRYPT_ADMIN_EMAIL:       admin@example.com
-      LETSENCRYPT_MODE:              disabled
+      LETSENCRYPT_ADMIN_EMAIL:       ${ADMIN_EMAIL}
+      LETSENCRYPT_MODE:              ${LETSENCRYPT_MODE}
       LETSENCRYPT_LOG_DIR:           /var/log/letsencrypt
       NGINX_LOG_DIR:                 /var/log/nginx
-      WORDPRESS_ALL_SERVER_URLS:     "www.example.com example.com"
-      PHPMYADMIN_ALL_SERVER_URLS:    "sql.example.com"
-      PHPMYADMIN_ENABLED:            "yes"
+      WORDPRESS_ALL_SERVER_URLS:     "${WORDPRESS_ALL_SERVER_URLS}"
+      PHPMYADMIN_ALL_SERVER_URLS:    "${PHPMYADMIN_ALL_SERVER_URLS}"
+      PHPMYADMIN_ENABLED:            "${PHPMYADMIN_ENABLED}"
     volumes:
       - log-data-volume:/var/log
       - nginx-cert-volume:/etc/letsencrypt
-      - wordpress-data-volume:/var/www/html
-      - phpmyadmin-data-volume:/var/www/phpmyadmin
+      - wordpress-data-volume:${WORDPRESS_ROOT_DIR}
+      - phpmyadmin-data-volume:${PHPMYADMIN_ROOT_DIR}
     depends_on:
       - wordpress
       - phpmyadmin
 #    ports:
-#      - :80
-#      - :443
+#      - ${WEB_HTTP_PORT}:80
+#      - ${WEB_HTTPS_PORT}:443
     networks:
       - default
       - proxynet
@@ -104,54 +105,54 @@ services:
 
   # Backup service
   wpbackup:
-    container_name:                  demo-wpbackup
+    container_name:                  ${WEBSITE_NAME}-wpbackup
     image:                           thetek/wpbackup:1.0.0
     restart:                         always
-    working_dir:                     /var/backups/demo
+    working_dir:                     ${WPBACKUP_ROOT_DIR}
     environment:
-      WPBACKUP_ENABLED:              "yes"
-      WPBACKUP_WEBSITE:              demo
-      WPBACKUP_DB_HOST:              mysql
-      WPBACKUP_DB_NAME:              demo
-      WPBACKUP_DB_USER:              demo
-      WPBACKUP_DB_PASSWORD:          mysqluserpassword
-      WPBACKUP_ROOT_DB_PASSWORD:     mysqlrootpassword
-      WPBACKUP_WPCONTENT_DIR:        /var/www/html/wp-content
-      WPBACKUP_ROOT_DIR:             /var/backups/demo
+      WPBACKUP_ENABLED:              "${WPBACKUP_ENABLED}"
+      WPBACKUP_WEBSITE:              ${WEBSITE_NAME}
+      WPBACKUP_DB_HOST:              ${MYSQL_HOST}
+      WPBACKUP_DB_NAME:              ${MYSQL_DATABASE}
+      WPBACKUP_DB_USER:              ${MYSQL_USER}
+      WPBACKUP_DB_PASSWORD:          ${MYSQL_PASSWORD}
+      WPBACKUP_ROOT_DB_PASSWORD:     ${MYSQL_ROOT_PASSWORD}
+      WPBACKUP_WPCONTENT_DIR:        ${WORDPRESS_ROOT_DIR}/wp-content
+      WPBACKUP_ROOT_DIR:             ${WPBACKUP_ROOT_DIR}
       WPBACKUP_LOG_DIR:              /var/log/wpbackup
       WPBACKUP_RESTORE_KEY:          restore-me.txt
       WPBACKUP_WPCUSTOM_KEY:         wpcustom.txt
-      WPBACKUP_DROPBOX_TOKEN:        
-      WPBACKUP_GPG_PASSWORD:         
+      WPBACKUP_DROPBOX_TOKEN:        ${DROPBOX_TOKEN}
+      WPBACKUP_GPG_PASSWORD:         ${GPG_PASSWORD}
       MYSQL_USER_CNF_FILE:           /etc/mysql/conf.d/my.cnf
       MYSQL_ROOT_CNF_FILE:           /etc/mysql/root.cnf
-      WP_CLEAN_DAILY_DAYS:           30
-      WP_CLEAN_WEEKLY_DAYS:          180
-      WP_CLEAN_MONTHLY_DAYS:         365
+      WP_CLEAN_DAILY_DAYS:           ${WP_CLEAN_DAILY_DAYS}
+      WP_CLEAN_WEEKLY_DAYS:          ${WP_CLEAN_WEEKLY_DAYS}
+      WP_CLEAN_MONTHLY_DAYS:         ${WP_CLEAN_MONTHLY_DAYS}
     volumes:
       - log-data-volume:/var/log
-      - wordpress-data-volume:/var/www/html
-      - wpbackup-data-volume:/var/backups/demo
+      - wordpress-data-volume:${WORDPRESS_ROOT_DIR}
+      - wpbackup-data-volume:${WPBACKUP_ROOT_DIR}
     depends_on:
       - mysql
   
   # Webdrive service
   webdrive:
-    container_name:                  demo-webdrive
+    container_name:                  ${WEBSITE_NAME}-webdrive
     image:                           thetek/webdrive:1.0.0
     restart:                         always
-    working_dir:                     /var/backups/demo
+    working_dir:                     ${WPBACKUP_ROOT_DIR}
     environment:
-      WEBDRIVE_ENABLED:              "no"
-      WEBDRIVE_URL:                  
-      WEBDRIVE_UID:                  
-      WEBDRIVE_PWD:                  
-      WEBDRIVE_ROOT_DIR:             /mnt/webdrive/demo
-      WPBACKUP_ROOT_DIR:             /var/backups/demo
+      WEBDRIVE_ENABLED:              "${WEBDRIVE_ENABLED}"
+      WEBDRIVE_URL:                  ${WEBDRIVE_URL}
+      WEBDRIVE_UID:                  ${WEBDRIVE_UID}
+      WEBDRIVE_PWD:                  ${WEBDRIVE_PWD}
+      WEBDRIVE_ROOT_DIR:             ${WEBDRIVE_ROOT_DIR}
+      WPBACKUP_ROOT_DIR:             ${WPBACKUP_ROOT_DIR}
     volumes:
       - log-data-volume:/var/log
-      - wpbackup-data-volume:/var/backups/demo:cached
-      - webdrive-data-volume:/mnt/webdrive/demo:delegated
+      - wpbackup-data-volume:${WPBACKUP_ROOT_DIR}:cached
+      - webdrive-data-volume:${WEBDRIVE_ROOT_DIR}:delegated
     devices:
       - /dev/fuse
     cap_add:
@@ -160,22 +161,22 @@ services:
   
 #  # Vsftpd service
 #  vsftpd:
-#    container_name:                  demo-vsftpd
+#    container_name:                  ${WEBSITE_NAME}-vsftpd
 #    image:                           thetek/vsftpd:1.0.0
 #    restart:                         "no"
-#    working_dir:                     /var/www/html
+#    working_dir:                     ${WORDPRESS_ROOT_DIR}
 #    environment:
-#      VSFTPD_ENABLED:                "no"
-#      VSFTPD_USERNAME:               demo
-#      VSFTPD_PASSWORD:               ghtyVX45BDYF7TD45FWL
-#      VSFTPD_HOME_DIR:               /var/www/html/wp-content
-#      VSFTPD_SERVER_URL:             
+#      VSFTPD_ENABLED:                "${VSFTPD_ENABLED}"
+#      VSFTPD_USERNAME:               ${VSFTPD_USERNAME}
+#      VSFTPD_PASSWORD:               ${VSFTPD_PASSWORD}
+#      VSFTPD_HOME_DIR:               ${WORDPRESS_ROOT_DIR}/wp-content
+#      VSFTPD_SERVER_URL:             ${VSFTPD_SERVER_URL}
 #    volumes:
 #      - log-data-volume:/var/log
-#      - wordpress-data-volume:/var/www/html
+#      - wordpress-data-volume:${WORDPRESS_ROOT_DIR}
 #    ports:
-#      - 0.0.0.0::21
-#      - 0.0.0.0::21000-21010
+#      - 0.0.0.0:${VSFTPD_CMD_PORT}:21
+#      - 0.0.0.0:${VSFTPD_PSV_PORTS}:21000-21010
 
 # Volumes
 volumes:
@@ -191,5 +192,4 @@ volumes:
 # Network
 networks:
   proxynet:
-    external:
-      name: dockernet
+    name: dockernet
