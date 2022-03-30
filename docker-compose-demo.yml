@@ -41,7 +41,7 @@ services:
     environment:
       # Do not add host here, it causes the error - mysqli::__construct(): (HY000/2002)
       # 2022-03-30 Now it seems to be fine with the host name in
-      WORDPRESS_DB_HOST:             ${MYSQL_HOST}
+      WORDPRESS_DB_HOST:              ${MYSQL_HOST}
       WORDPRESS_DB_NAME:              ${MYSQL_DATABASE}
       WORDPRESS_DB_USER:              ${MYSQL_USER}
       WORDPRESS_DB_PASSWORD:          ${MYSQL_PASSWORD}
